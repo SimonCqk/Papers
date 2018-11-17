@@ -36,7 +36,7 @@
 `Promises`的上下文中使用的 **fulfilled, rejected, resolved, pending和settled** 在[ECMASCRIPT-6.0](http://w3c.github.io/webrtc-pc/#bib-ECMASCRIPT-6.0)中定义。<br>
 **捆绑**（bundle），**只捆绑**（bundle-only）和**捆绑策略**（bundle-only）在[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)中定义。<br>
 **OAuth客户端**（OAuth Client）和**授权服务**（Authorization Server）在[RFC6749](http://w3c.github.io/webrtc-pc/#bib-RFC6749)的1.1节被定义。<br>
-**隔离流**（isolated stream），**对等身份**（peer identity），**请求身份断言**（request an identity assertion）和**身份验证**（validate the identity）在[WEBRTC-IDENTITY](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-IDENTITY)中定义。
+**隔离流**（isolated stream），**对等身份**（peer identity），**请求身份断言**（request an identity assertion）和**身份认证**（validate the identity）在[WEBRTC-IDENTITY](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-IDENTITY)中定义。
 
 > 注意：
 > 通常使用Javascript API的原则包括：`持续运行直到完成`和`无数据竞争`，它们都在[API-DESIGN-PRINCIPLES](http://w3c.github.io/webrtc-pc/#bib-API-DESIGN-PRINCIPLES)中定义了。也就是说，当一个任务正在运行时，任何外部事件都不会影响Javascript应用的可见性。例如，当Javascript执行时，缓存在数据通道里的数据数量将会随着"send"的调用而增长，并且直到任务的检查点之后，由于发送数据包导致的减少才被应用可见。
@@ -86,9 +86,108 @@ enum RTCIceCredentialType {
 };
 ```
 
-枚举类型简述：
+枚举值简述：
 
 - password：此凭据是依托于用户名和密码的长期认证方式，[RFC5389](https://www.w3.org/TR/webrtc/#bib-RFC5389)的10.2节有详细描述
 
-- oauth：一个基于OAuth2.0的认证方法，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有描述。<br>  对于OAuth认证，需要向ICE Agent提供3份凭证信息：`kid`（用于RTCIceServer成员变量username），`macKey`和`accessToken`（存在于RTCOAuthCredential字典类型内）。<br>  **注意：本规范并没有定义应用（起OAuth Client的作用）是如何从`Authorization Server`获取`accessToken, kid, macKey`这些凭证的，因为WebRTC只处理ICE Agent与TURN Server之间的交互。例如，应用可能使用PoP（Proof-of-Possession）的Token凭证类型，使用OAuth 2.0隐式授权类型。[RFC](https://www.w3.org/TR/webrtc/#bib-RFC7635)的附录B中有此示例。** <br>  OAuth Client应用，负责刷新凭证信息，并且在`accessToken`失效前利用新的凭证信息更新ICE Agent。OAuth Client可以利用RTCPeerConnection的setConfiguration方法来周期性的刷新TURN凭证。<br>  HMAC密钥（RTCOAuthCredential.macKey）的长度应是一个大于20字节的整数（160位）。<br> **注意：根据[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)4.1节，HMAC密钥必须是对称密钥，但对称密钥会生成大型的访问令牌，可能和单个STUN信息不兼容。** <br>  **注意：目前的STUN/TURN协议只是用了SHA-1/SHA-2族哈希算法来保证消息完整性，这在[RFC5389]和[STUN-BIS]中作了定义。**
+- oauth：一个基于OAuth2.0的认证方法，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有描述。<br>  对于OAuth认证，需要向ICE Agent提供3份凭证信息：`kid`（用于RTCIceServer成员变量username），`macKey`和`accessToken`（存在于RTCOAuthCredential字典类型内）。<br>  **注意：本规范并没有定义应用（起OAuth Client的作用）是如何从`Authorization Server`获取`accessToken, kid, macKey`这些凭证的，因为WebRTC只处理ICE Agent与TURN Server之间的交互。例如，应用可能使用PoP（Proof-of-Possession）的Token凭证类型，使用OAuth 2.0隐式授权类型。[RFC](https://www.w3.org/TR/webrtc/#bib-RFC7635)的附录B中有此示例。** <br>  OAuth Client应用，负责刷新凭证信息，并且在`accessToken`失效前利用新的凭证信息更新ICE Agent。OAuth Client可以利用RTCPeerConnection的setConfiguration方法来周期性的刷新TURN凭证。<br>  HMAC密钥（RTCOAuthCredential.macKey）的长度应是一个大于20字节的整数（160位）。<br> **注意：根据[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)4.1节，HMAC密钥必须是对称密钥，但对称密钥会生成大型的访问令牌，可能和单个STUN信息不兼容。** <br>  **注意：目前的STUN/TURN协议只是用了SHA-1/SHA-2族哈希算法来保证消息完整性，这在[RFC5389]的15.3节和[STUN-BIS]的14.6节作了定义。**
 
+#### 4.2.3 `RTCOAuthCredential`字典
+
+`RTCOAuthCredential`字典被STUN/TURN客户端（内置于ICE Agent内）用于描述OAuth的鉴权凭证信息，对STUN/TURN服务器进行身份认证，[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有相关描述。注意`kid`参数并不在此字典类型中，而在`RTCIceServer`的`username`成员变量中。
+
+```webidl
+dictionary RTCOAuthCredential {
+    required DOMString macKey;
+    required DOMString accessToken;
+};
+```
+
+`RTCOAuthCredential`字典的成员变量：
+
+- DOMString类型的`macKey`，非空："mac_key"是一串base64-url格式的编码，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)的6.2节有相关描述。它被用在STUN的消息完整性哈希计算中（密码使用的则是基于密码的认证方式）。注意，OAuth响应里的"key"参数是一个JSON Web Key（JWK）或JWK编码后JWE格式的消息。同样注意，这是OAuth中唯一一个不被直接使用的参数，它只能从JWK的"k"参数中提取出来，"k"参数包含了需要的base-64编码的"mac_key"。
+- DOMString类型的`accessToken`，非空："access_token"是一串base64格式的编码，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)的6.2节有相关描述。这是一个自持有的令牌，应用不可见。认证加密被用于消息的加密和完整性保护。访问令牌包括了一个未加密的nonce值，供认证服务生成唯一的`mac_key`。令牌的第二部分由认证加密服务保护着，包括mac_key，时间戳和生存时间。时间戳和生存时间共同组成了过期信息，过期信息描述了令牌凭证合法且能被TURN服务接受的时间窗口。
+
+RTCOAuthCredential字典的一个例子：
+
+```js
+// EXAMPLE 1
+{
+  macKey: 'WmtzanB3ZW9peFhtdm42NzUzNG0=',
+  accessToken: 'AAwg3kPHWPfvk9bDFL936wYvkoctMADzQ5VhNDgeMR3+ZlZ35byg972fW8QjpEl7bx91YLBPFsIhsxloWcXPhA=='
+}
+```
+
+#### 4.2.4 `RTCIceServer`字典
+
+`RTCIceServer`字典被ICE Agent用来描述和对等终端建立连接的STUN/TURN服务器信息。
+
+```webidl
+dictionary RTCIceServer {
+    required (DOMString or sequence<DOMString>) urls;
+             DOMString                          username;
+             (DOMString or RTCOAuthCredential)  credential;
+             RTCIceCredentialType               credentialType = "password";
+};
+```
+
+`RTCIceServer`字典的成员变量：
+
+- DOMString或sequence<DOMString>类型的`urls`，非空：[RFC7064]和[RFC7065]中定义的STUN/TURN的URI(s)，或其他的URI类型。
+- DOMString类型的`username`：如果`RTCIceServer`代表了一个TURN服务器，且`credentialType`是`"password"`，那么这一属性指定的是TURN服务器使用的用户名。<br>  如果`RTCIceServer`代表了一个TURN服务器，且`credentialType`是`"oauth"`，那么这一属性指定的是TURN服务器和认证服务器之间共享的对称密钥的密钥id，[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有相关描述。这是一个短暂且唯一的密钥标识符。`kid`允许TURN服务器选择合适的密钥材料对访问令牌进行解密，因此以`kid`为代表的密钥标识符被用于"access_token"的加密。`kid`值和OAuth响应中的"kid"参数相同，这被定义在[RFC7515](https://www.w3.org/TR/webrtc/#bib-RFC7515)的4.1.4节。
+- DOMString或RTCOAuthCredential类型的`credential`：如果`RTCIceServer`代表了一个TURN服务器，那么这一属性指定的是TURN服务器使用的凭证。<br> 如果`credentialType`是`"password"`，那么`credential`是`DOMString`类型，代表了长期使用的认证密码，这在[RFC5389](https://www.w3.org/TR/webrtc/#bib-RFC5389)的10.2节有相关描述。<br>  如果`credentialType`是`"oauth"`，那么`credential`是`RTCOAuthCredential`类型，包含了OAuth访问令牌和MAC值。
+- RTCIceCredentialType类型的`credentialType`，默认值为"password"：如果`RTCIceServer`代表了一个TURN服务器，那么这一属性指定了当TURN服务器请求认证的时候*credential*是如何被使用的。
+
+一个RTCIceServer对象数组的例子：
+
+```js
+[
+  {urls: 'stun:stun1.example.net'},
+  {urls: ['turns:turn.example.org', 'turn:turn.example.net'],
+    username: 'user',
+    credential: 'myPassword',
+    credentialType: 'password'},
+  {urls: 'turns:turn2.example.net',
+    username: '22BIjxU93h/IgwEb',
+    credential: {
+      macKey: 'WmtzanB3ZW9peFhtdm42NzUzNG0=',
+      accessToken: 'AAwg3kPHWPfvk9bDFL936wYvkoctMADzQ5VhNDgeMR3+ZlZ35byg972fW8QjpEl7bx91YLBPFsIhsxloWcXPhA=='
+    },
+    credentialType: 'oauth'}
+];
+```
+
+#### 4.2.5 `RTCIceTransportPolicy`枚举值
+
+如[JSEP](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.1)4.1.1节所定义，如果`RTCConfiguration`的`iceTransportPolicy`成员被指定，它将定义浏览器使用的ICE候选策略[JSEP 3.5.3节](https://www.w3.org/TR/webrtc/#bib-JSEP)，以向应用提供允许的候选者；只有候选者可被用于连接性检查。
+
+```webidl
+enum RTCIceTransportPolicy {
+    "relay",
+    "all"
+};
+```
+
+枚举值的非规范描述：
+
+- relay：ICE Agent仅适用媒体中级候选者，例如通过TURN服务器传递的候选者。**注意：这可以在某些特定场景下防止远程终端获取用户的IP地址。例如，在一个基于“调用”的应用中，应用可能想防止某个未知的调用者获得被调用方得IP地址，除非被调用方以某些同意。**
+- all：当被指定为"all"时，ICE Agent可以使用任意类型的候选者。**注意：在具体实现中，仍然可以使用自己的候选者过渡策略来限制暴露给应用的IP地址，这在RTCIceCandidate.address中有提到。**
+
+#### 4.2.6枚举值
+
+如[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)中描述的，RtcpMuxPolicy会影响ICE候选者收集哪些内容以支持非多路复用RTCP。
+
+```webidl
+enum RTCRtcpMuxPolicy {
+    // At risk due to lack of implementers' interest.
+    "negotiate",
+    "require"
+};
+```
+
+枚举值的非规范描述：
+
+- negotiate：同时收集RTP候选者和RTCP候选者。如果远程端点能够复用RTCP，则在RTP候选者之上复用RTCP。如果不能，独立地使用RTP和RTCP候选者。注意，[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)提到，用户代理可能没有实现不复用的RTCP，在这种情况下所有试图以`negotiate`策略构造`RTCPeerConnection`的操作都会被拒绝。
+- require：只收集RTC候选者和在RTP基础上复用了RTCP的候选者。如果远程端点不支持rtcp复用，那么会话协商将失败。
+
+> <big>风险特征</big>：支持非多路复用RTP/RTCP的本规范的各个方面被标记为存在风险的特征，因为实现者没有明确的承诺。包括：1. 对于`negotiate`值，实现者没有明确承诺与此相关的行为。 2.在`RTCRtpSender`和`RTCRtpReceiver`之内支持`rtcpTransport`属性。
