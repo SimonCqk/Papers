@@ -173,7 +173,25 @@ enum RTCIceTransportPolicy {
 - relay：ICE Agent仅适用媒体中级候选者，例如通过TURN服务器传递的候选者。**注意：这可以在某些特定场景下防止远程终端获取用户的IP地址。例如，在一个基于“调用”的应用中，应用可能想防止某个未知的调用者获得被调用方得IP地址，除非被调用方以某些同意。**
 - all：当被指定为"all"时，ICE Agent可以使用任意类型的候选者。**注意：在具体实现中，仍然可以使用自己的候选者过渡策略来限制暴露给应用的IP地址，这在RTCIceCandidate.address中有提到。**
 
-#### 4.2.6枚举值
+#### 4.2.6 `RTCBundlePolicy`枚举值
+
+如[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)提到，如果远程端点不支持捆绑，则捆绑策略会影响哪些媒体轨参与协商，以及哪些ICE候选者被收集。如果远程端点支持捆绑，所有媒体轨和数据通道都会被捆绑到同一传输路径上。
+
+```webidl
+enum RTCBundlePolicy {
+    "balanced",
+    "max-compat",
+    "max-bundle"
+};
+```
+
+枚举值的非规范描述：
+
+- balanced：为所有正在使用中的媒体类型（音频，视频和数据）收集ICE候选者。如果远程端点不支持捆绑，则只会为每个独立的传输协商一个音频或视频。
+- max-compat：为每个流媒体轨收集ICE候选者。如果远程端点不支持捆绑，为每个独立传输协商所有的媒体轨。
+- max-bundle：只为一个媒体轨收集ICE候选者。如果远程端点不支持捆绑，只协商一个媒体轨。
+
+#### 4.2.7 `RTCRtcpMuxPolicy`枚举值
 
 如[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)中描述的，RtcpMuxPolicy会影响ICE候选者收集哪些内容以支持非多路复用RTCP。
 
@@ -191,3 +209,5 @@ enum RTCRtcpMuxPolicy {
 - require：只收集RTC候选者和在RTP基础上复用了RTCP的候选者。如果远程端点不支持rtcp复用，那么会话协商将失败。
 
 > <big>风险特征</big>：支持非多路复用RTP/RTCP的本规范的各个方面被标记为存在风险的特征，因为实现者没有明确的承诺。包括：1. 对于`negotiate`值，实现者没有明确承诺与此相关的行为。 2.在`RTCRtpSender`和`RTCRtpReceiver`之内支持`rtcpTransport`属性。
+
+#### 4.2.8 提供/应答选项
