@@ -46,7 +46,7 @@
 
 ### 4.1 介绍
 
-一个[RTCPeerConnection](http://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection)实例允许与另一个浏览器，或实现了制定协议的终端中的`RTCPeerConnection`实例建立对等通信。通信的过程通过交换信号通道中的控制信息（被称为信号协议）来协调，信号通道并没有明确的制定，但通常是服务页面中的一段脚本，例如[XMLHttpRequest](http://w3c.github.io/webrtc-pc/#bib-XMLHttpRequest)，也可以是[WebSockets](http://w3c.github.io/webrtc-pc/#bib-WEBSOCKETS-API)。
+一个[RTCPeerConnection](http://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection)实例允许与另一个浏览器，或实现了制定协议的终端中的`RTCPeerConnection`实例建立对等通信。通信的过程通过交换信号通道中的控制信息（被称为信令协议）来协调，信号通道并没有明确的制定，但通常是服务页面中的一段脚本，例如[XMLHttpRequest](http://w3c.github.io/webrtc-pc/#bib-XMLHttpRequest)，也可以是[WebSockets](http://w3c.github.io/webrtc-pc/#bib-WEBSOCKETS-API)。
 
 ### 4.2 配置
 
@@ -211,3 +211,138 @@ enum RTCRtcpMuxPolicy {
 > <big>风险特征</big>：支持非多路复用RTP/RTCP的本规范的各个方面被标记为存在风险的特征，因为实现者没有明确的承诺。包括：1. 对于`negotiate`值，实现者没有明确承诺与此相关的行为。 2.在`RTCRtpSender`和`RTCRtpReceiver`之内支持`rtcpTransport`属性。
 
 #### 4.2.8 提供/应答选项
+
+这些字典类型描述了可用于提供/应答创建过程的选项。
+
+```webidl
+dictionary RTCOfferAnswerOptions {
+    boolean voiceActivityDetection = true;
+};
+```
+
+`RTCOfferAnswerOptions`成员变量：
+
+- boolean类型的`voiceActivityDetection`，缺省值为"true"：很多编解码器和系统都能够检测到“静音”，并改变它们的行为，例如不传输任何媒体信息。在很多场景下，例如处理紧急呼叫或不仅仅人声之外的语音时，我们希望能够关闭这个选项。这个选项允许应用提供关于是否希望开启或关闭这类处理的信息。
+
+```webidl
+dictionary RTCOfferOptions : RTCOfferAnswerOptions {
+    boolean iceRestart = false;
+};
+```
+
+`RTCOfferOptions`成员变量：
+
+- boolean类型的`iceRestart`，缺省值为"false"：当此值为true时，会生成与当前凭证（在`localDescription`属性的SDP中可见）不同的ICE凭证。应用此描述将重启ICE，具体描述在[ICE](https://www.w3.org/TR/webrtc/#bib-ICE)的9.1.1.1节。<br>  当此值为false，`localDescription`属性具有有效的ICE凭证，生成的描述将和当前的`localDescription`属性一致。 **注意：当`iceConnectionState`转换为"failed"时，建议执行ICE重启。应用也可能额外监听`iceConnectionState`到"disconnected"的变化，然后使用其他信息来源（比如使用`getStats`测量接下来几秒内发送或接收的字节数是否增加）确定是否应该重启ICE。**
+
+`RTCAnswerOptions`字典描述了指定`answer`类型会话的选项。
+
+```webidl
+dictionary RTCAnswerOptions : RTCOfferAnswerOptions {
+};
+```
+
+### 4.3 状态定义
+
+#### 4.3.1 `RTCSignalingState`枚举值
+
+```webidl
+enum RTCSignalingState {
+    "stable",
+    "have-local-offer",
+    "have-remote-offer",
+    "have-local-pranswer",
+    "have-remote-pranswer",
+    "closed"
+};
+```
+
+枚举类型描述：
+
+- stable：过程中无提供/应答的交换。这也是初始状态，本地和远程描述都是空的。
+- have-local-offer：本地的`提供`类型的描述已经被成功应用了。
+- have-remote-offer：远程的`提供`类型的描述已经被成功应用了。
+- have-local-pranswer：远程的`提供`类型的描述已经被成功应用且本地的`对端应答`类型的描述已被成功应用。
+- have-remote-pranswer：本地的`提供`类型的描述已经被成功应用且远程的`对端应答`类型的描述已被成功应用。
+- closed：`RTCPeerConnection`已经被关闭，其[IsClosed]槽值变为true。
+
+**信号状态转移图**
+![Figure 1](https://www.w3.org/TR/webrtc/images/peerstates.svg)
+
+一个状态转移的例子：
+调用方的转移：
+
+- 创建新RTCPeerConnection(): `stable`
+- setLocalDescription(offer): `have-local-offer`
+- setRemoteDescription(pranswer): `have-remote-pranswer`
+- setRemoteDescription(answer): `stable`
+
+被调用方的转移：
+
+- 创建新RTCPeerConnection(): `stable`
+- setRemoteDescription(offer): `have-remote-offer`
+- setLocalDescription(pranswer): `have-local-pranswer`
+- setLocalDescription(answer): `stable`
+
+#### 4.3.2 `RTCIceGatheringState`枚举值
+
+```webidl
+enum RTCIceGatheringState {
+    "new",
+    "gathering",
+    "complete"
+};
+```
+
+枚举类型描述：
+
+- new：所有`RTCIceTransports`都在"new"的收集状态，没有任何一个处于"gathering"状态，或当前还没有传输。
+- gathering：所有`RTCIceTransports`都在"gathering"的收集状态
+- complete：至少有一个`RTCIceTransports`存在，且都处于"completed"状态。
+
+#### 4.3.3 RTCPeerConnectionState枚举值
+
+```webidl
+enum RTCPeerConnectionState {
+    "new",
+    "connecting",
+    "connected",
+    "disconnected",
+    "failed",
+    "closed"
+};
+```
+
+枚举类型描述：
+
+- new：所有`RTCIceTransport`或`RTCDtlsTranport`都在"new"状态，且没有任何一个处于"connecting"，"checking"，"failed"，"disconnected"状态，也可以是所有传输都处于"closed"状态，或当前还没有传输。
+- connecting：所有`RTCIceTransport`或`RTCDtlsTranport`都在"connecting"或"checking"状态，且没有一个处于"failed"状态。
+- connected：所有`RTCIceTransport`或`RTCDtlsTranport`都在"connected"，"completed"或"closed"状态，且其中至少有一个处于"connected"或"completed"状态。
+- disconnected：所有`RTCIceTransport`或`RTCDtlsTranport`都在"disconnected"状态，且没有一个处于"failed"，"connecting"或"checking"状态。
+- failed：所有`RTCIceTransport`或`RTCDtlsTranport`都在"failed"状态。
+- closed：`RTCPeerConnection`对象的[IsClosed]槽为值true。
+
+#### 4.3.4 `RTCIceConnectionState`枚举值
+
+```webidl
+enum RTCIceConnectionState {
+    "new",
+    "checking",
+    "connected",
+    "completed",
+    "disconnected",
+    "failed",
+    "closed"
+};
+```
+
+枚举类型描述：
+
+- new：所有`RTCIceTransport`都在"new"状态，且没有任何一个处于"disconnected"，"checking"，"failed"，"disconnected"状态，也可以是所有`RTCIceTransports`都处于"closed"状态，或当前还没有传输。
+- checking：所有`RTCIceTransport`都在"checking"状态且没任何一个处于"disconnected"或"failed"状态。
+- connected：所有`RTCIceTransport`都在"connected"，"completed"或"closed"状态，且其中至少有一个处于"connected"状态。
+- completed：所有`RTCIceTransport`都在"completed"或"closed"状态，且其中至少有一个处于"completed"状态。
+- disconnected：所有`RTCIceTransport`都在"disconnected"状态，且没有一个处于"failed"状态。
+- failed：所有`RTCIceTransport`都在"failed"状态。
+- closed：`RTCPeerConnection`对象的[IsClosed]槽为值true。
+
+值得注意的是，如果`RTCIceTransport`由于信令的存在而被丢弃（如RTCP复用或执行捆绑），或被信令创建（如增加新的媒体描述），则状态可以从某一状态跳变到另一状态。
