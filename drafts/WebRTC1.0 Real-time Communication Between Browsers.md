@@ -346,3 +346,121 @@ enum RTCIceConnectionState {
 - closed：`RTCPeerConnection`对象的[IsClosed]槽为值true。
 
 值得注意的是，如果`RTCIceTransport`由于信令的存在而被丢弃（如RTCP复用或执行捆绑），或被信令创建（如增加新的媒体描述），则状态可以从某一状态跳变到另一状态。
+
+### 4.4 `RTCPeerConnection`接口
+
+[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)规范从整体介绍了`RTCPeerConnection`的运作细节。下文会适时提供对[JSEP]特定小节的参考。
+
+#### 4.4.1 操作
+
+调用`new RTCPeerConnection(configuration)`创建一个`RTCPeerConnection`对象。
+`configuration.servers`包含了ICE用以探测并访问服务器的相关信息。应用可以为同一类型的服务提供多个实例，并且任何TURN服务器也可以用作STUN服务器，用于收集服务器自反候选者。
+一个`RTCPeerConnection`对象持有 **信令状态，连接状态，ICE收集状态和ICE连接状态** 四个状态。它们在对象创建时被初始化。
+`RTCPeerConnection`的ICE协议实现部分用 **ICE agent** 来表示。`RTCPeerConnection`中与[ICE Agent](http://w3c.github.io/webrtc-pc/#dfn-ice-agent)交互的方法被分别命名为：` addIceCandidate, setConfiguration, setLocalDescription, setRemoteDescription和close`。与这些交互相关的小节都被记录在[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)文档中。ICE Agent同样向用户代理指示了代表其内部的`RTCIceTransport`状态何时发生变化，这在[5.6 RTCIceTransport Interface](http://w3c.github.io/webrtc-pc/#rtcicetransport)。本节中列举的任务源即网络任务源[networking task source](https://www.w3.org/TR/html51/webappapis.html#networking-task-source)
+
+#### *4.4.1.1 构造器*
+
+当`RTCPeerConnection`的构造器被调用了，用户代理 **必须** 按照以下步骤运行：
+
+1. 如果以下任何一个步骤出现了未知错误，都会抛出`UnkownError`错误，并在"message"域设置相应的错误描述。
+2. *connection*应是最新创建的`RTCPeerConnection`对象。
+3. 如果 *configuration* 中的凭证域`certificates`非空，则将来要对每个值检查是否过期。如果证书已过期或证书内部的[origin]插槽与当前证书的插槽不匹配，则会抛出`InvalidAccessError`，否则保存此凭证。如果没有指定`certificates`的值，一个或多个新`RTCCertificates`实例将生成供`RTCPeerConnection`实例使用。以上步骤可能是 *异步* 发生的，因此在步骤子序列运行过程中，`certificates`的值可能还是未定义的。如[RTCWEB-SECURITY 4.3.2.3](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-SECURITY)所说，WebRTC使用自签名而不是公钥基础结构（PKI）证书，因此到期检查是为了确保密钥不会无限期使用，同时不需要额外的证书检查。
+4. 初始化ICE Agent的 *连接*。
+5. 填充 *连接* 内部的[Configuration] 槽。[设置配置](http://w3c.github.io/webrtc-pc/#set-pc-configuration)的规则由 *配置* 指定。
+6. 填充 *连接* 内部的[IsClosed] 槽，初始化为`false`。
+7. 填充 *连接* 内部的[NegotiationNeeded] 槽，初始化为`false`。
+8. 填充 *连接* 内部的[SctpTransport] 槽，初始化为`null`。
+9. 填充 *连接* 内部的[Operations] 槽，代表一个操作队列，初始化为空列表。
+10. 填充 *连接* 内部的[LastOffer] 槽，初始化为空字符串。
+11. 填充 *连接* 内部的[LastAnswer] 槽，初始化为空字符串。
+12. 设置 *连接* 的信令状态为`"stable"`。
+13. 设置 *连接* 的ICE连接状态为`"new"`。
+14. 设置 *连接* 的ICE收集状态为`"new"`。
+15. 设置 *连接* 的连接状态为`"new"`。
+16. 填充 *连接* 内部的[PendingLocalDescrtiption] 槽，初始化为`null`。
+17. 填充 *连接* 内部的[CurrentLocalDescrtiption] 槽，初始化为`null`。
+18. 填充 *连接* 内部的[PendingRemoteDescrtiption] 槽，初始化为`null`。
+19. 填充 *连接* 内部的[CurrentRemoteDescrtiption] 槽，初始化为`null`。
+20. 返回 *连接* 。
+
+#### *4.4.1.2 操作入队*
+
+一个`RTCPeerConnection`对象持有一个 **操作队列（operations queue）**，槽名[Operations]，它保证了队列中只有一个操作能异步并发地执行。如果后续的调用在之前的`promise`对象[有执行结果](http://w3c.github.io/webrtc-pc/#dfn-settled)之前产生了，它们会被加入队列中直到之前的`promise`有了结果才会被依次调用。
+让某操作进入`RTCPeerConnection`对象的队列中，需按照以下步骤执行：
+
+1. *连接* 即`RTCPeerConnection`对象。
+2. 如果 *连接* 的[IsClosed]槽为`"true"`，用`promise`包装一个新创建的`InvalidStateError`并返回。
+3. 让 *操作* 成为即将入队的那一项。
+4. 创建新`promise`，名为`p`。
+5. 将 *操作* 添加至[Operations]队尾。
+6. 如果[Operations]的长度为1，则执行该操作。
+7. 在[履行](http://w3c.github.io/webrtc-pc/#dfn-fulfill)或[拒绝](http://w3c.github.io/webrtc-pc/#dfn-reject)该操作返回的`promise`之后，运行以下步骤：
+   1. 如果 *连接* 的[IsClosed]槽为`true`，终止以下步骤。
+   2. 如果操作返回的`promise`履行并伴随了执行结果，把结果赋给`p`。
+   3. 如果操作返回的`pormose`拒绝并伴随了错误结果，把结果赋给`p`。
+   4. 根据`p`值，执行以下步骤：
+    1. 如果 *连接* 的[IsClosed]槽为`true`，终止以下步骤。
+    2. 移除[Operations]队列中的第一个元素。
+    3. 如果[Operations]队列非空，执行队列中的第一个操作。
+8. 返回`p`。
+
+#### *4.4.1.3 更新连接状态*
+
+`RTCPeerConnection`集成了连接状态（connection state)。当`RTCDtlsTransport`或`RTCIceTransport`状态转移或[IsClosed]槽值为`true`时，用户代理必须将包含以下步骤的任务入队以 **更新连接状态** ：
+
+1. *连接* 即`RTCPeerConnection`对象。
+2. `newState`变量值即`RTCPeerConnectionState`枚举值中派生的新状态值。
+3. 如果 *连接* 的连接状态与`newState`值相同，终止以下步骤。
+4. 将 *连接* 的 连接状态设置为`newState`。
+5. 触发此 *连接* 的`connectionstatechange`事件。
+
+#### *4.4.1.4 更新ICE收集状态*
+
+为了**更新** `RTCPeerConnection`实例的 **ICE收集状态**，用户代理必须将包含以下步骤的任务入队：
+
+1. 如果 *连接* 的[IsClosed]槽值为`true`，终止以下步骤。
+2. `newState`变量值即`RTCIceGatheringState`枚举值中派生的新状态值。
+3. 如果 *连接* 的ICE收集状态与`newState`值相同，终止以下步骤。
+4. 触发此 *连接* 的`icegatheringstatechange`事件。
+5. 如果`newState`值为`"completed"`，使用`RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件，其候选者属性设为`null`。
+
+> 注意：触发候选者属性为`null`的事件是为了确保传统兼容性。新代码应该监控收集`RTCIceTransport`或`RTCPeerConnection`的状态。
+
+#### *4.4.1.5 更新ICE连接状态*
+
+为了**更新** `RTCPeerConnection`实例的 **ICE连接状态**，用户代理必须将包含以下步骤的任务入队：
+
+1. 如果 *连接* 的[IsClosed]槽值为`true`，终止以下步骤。
+2. `newState`变量值即`RTCIceConnectionState`枚举值中派生的新状态值。
+3. 如果 *连接* 的ICE连接状态与`newState`值相同，终止以下步骤。
+4. 将 *连接* 的 ICE连接状态设置为`newState`。
+5. 触发此连接的`iceconnectionstatechange`事件。
+
+#### *4.4.1.6 设置RTCSessionDescription*
+
+为了设置`RTCPeerConnection`对象的`RTCSessionDescription`，将以下步骤加入 *连接* 的操作队列：
+
+1. 变量`p`为新的`promise`对象。
+2. 并行启动进程应用[JSEP 5.5&5.6](http://w3c.github.io/webrtc-pc/#bib-JSEP)中的 *描述*。
+    1. 如果 *连接* 的[IsClosed]槽值为`true`，则终止以下步骤。
+    2. 如果 *描述* 类型对于当前的连接信令状态是非法的，如[JESP 5.5&5.6](http://w3c.github.io/webrtc-pc/#bib-JSEP)中提到的，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
+    3. 如果 *描述* 被设为本地描述，且如果`description.type`是`offer`，`description.sdp`与连接的[LastOffer]槽值不同，则拒绝此`promise`并创建一个新的`InvalidModifcationError`错误然后终止步骤。
+    4. 如果 *描述* 被设为本地描述，且如果`description.type`是`rollback`，信令状态是`"stable"`，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
+    5. 如果 *描述* 被设为本地描述，且如果`description.type`是`answer`或`pranswer`，`description.sdp`与连接的[LastAnswer]槽值不同，则拒绝此`promise`并创建一个新的`InvalidModifcationError`错误然后终止步骤。
+    6. 如果 *描述* 的内容不合SDP语法，则以[RTCError](http://w3c.github.io/webrtc-pc/#dfn-rtcerror) （`errorDetail`被设置为"sdp-syntax-error"并把`sdpLineNumber`设置为检测到的SDP内容中非法语法所在行）拒绝此`promise`并终止步骤。
+    7.  如果 *描述* 被设为远程描述，则`RTCRtcpMuxPolicy`是必须项，若远程描述并没有使用RTCP复用，则拒绝此`promise`并创建一个新的`InvalidAccessError`错误然后终止步骤。
+    8.  如果 *描述* 中的内容非法，则拒绝此`promise`并创建一个新的`InvalidAccessError`错误然后终止步骤。
+    9.  对于其他所有错误，拒绝`promise`并创建一个`OperationError`。
+3.  如果 *描述* 被成功应用，用户代理必须将包含以下步骤的任务入队：
+    1. 如果 *连接* 的[IsClosed]槽值为`true`，则终止以下步骤。
+    2. 如果 *描述* 被设为本地描述，则运行以下步骤中的某一个：
+        - 如果 *描述* 的类型为`"offer"`，设置连接的[PendingLocalDescription]槽为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-local-offer"`。
+        - 如果 *描述* 的类型为`"answer"`， 则它完成了一次提供或应答的谈判。将 *连接* 的[CurrentLocalDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentRemoteDescription]设置为[PendingRemoteDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *连接* 的信令状态设为`"stable"`。
+        - 如果 *描述* 类型为`"rollback"`，则这是一个回滚操作。将 *连接* 的[PendingLocalDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
+        - 如果 *描述* 类型为`"pranswer"`，则把 *连接* 的[PendingLocalDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-local-pranswer"`。
+    3. 否则，如果 *描述* 被设为远程描述，则运行以下步骤中的某一个：
+        - 如果 *描述* 类型为`"rollback"`且信令状态为`"stable"`，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
+        - 如果 *描述* 的类型为`"offer"`，设置连接的[PendingRemoteDescription]槽为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-remote-offer"`。
+        - 如果 *描述* 的类型为`"answer"`，则它完成了一次提供或应答的谈判。将 *连接* 的[CurrentRemoteDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentLocalDescription]设置为[PendingLocalDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *连接* 的信令状态设为`"stable"`。
+        - 如果 *描述* 类型为`"rollback"`，则这是一个回滚操作。将 *连接* 的[PendingRemoteDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
+        - 如果 *描述* 类型为`"pranswer"`，则把 *连接* 的[PendingRemoteDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-remote-pranswer"`。
