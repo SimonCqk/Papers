@@ -74,7 +74,7 @@ dictionary RTCConfiguration {
 - RTCBundlePolicy类型的`bundlePolicy`，缺省值为"balanced"：当收集候选ICE时指示使用什么媒体捆绑策略。
 - RTCRtcpMuxPolicy类型的`rtcMuxPolicy`，缺省值为"require"：当收集候选ICE时指示使用什么RTCP复用策略。
 - DOMString类型的`peerIdentity`：为RTCPeerConnection设置目标对等终端的身份。只有成功地对身份进行鉴权，RTCPeerConnection才能与远程对等终端建立起连接。
-- sequence<RTCCertificate>类型的`certificates`：RTCPeerConnection鉴权时所需的一系列证书。<br>  此参数的合法值通过调用`generateCertificate`函数得到。<br>  尽管任意给定的DTLS连接只会使用一份证书，但这一属性使得调用方可以提供多种证书以支持不同的算法。在DTLS连接的握手阶段，它会最终选择一份允许范围内的证书。RTCPeerConnection的具体实现中完成了对给定连接的证书选择过程，但证书是如何选择的并不在本规范的讨论范围之内。<br>  如果值为空，则每个RTCPeerConnection实例都会生成默认的证书集合。<br>  此选项还使得应用的密钥连续性成为可能。一个`RTCCertificate`可以被持久化存储在[INDEXEDDB](https://www.w3.org/TR/webrtc/#bib-INDEXEDDB)中并被复用。持久化和复用避免了密钥重复生成的开销。<br>  此配置选项的值在初始化阶段被选择后就不能再被改变。
+- sequence<RTCCertificate>类型的`certificates`：RTCPeerConnection鉴权时所需的一系列证书。<br>  此参数的合法值通过调用`generateCertificate`函数得到。<br>  尽管任意给定的DTLS连接只会使用一份证书，但这一属性使得调用方可以供应多种证书以支持不同的算法。在DTLS连接的握手阶段，它会最终选择一份允许范围内的证书。RTCPeerConnection的具体实现中完成了对给定连接的证书选择过程，但证书是如何选择的并不在本规范的讨论范围之内。<br>  如果值为空，则每个RTCPeerConnection实例都会生成默认的证书集合。<br>  此选项还使得应用的密钥连续性成为可能。一个`RTCCertificate`可以被持久化存储在[INDEXEDDB](https://www.w3.org/TR/webrtc/#bib-INDEXEDDB)中并被复用。持久化和复用避免了密钥重复生成的开销。<br>  此配置选项的值在初始化阶段被选择后就不能再被改变。
 - `octet`类型的`iceCandidatePoolSize`，缺省值为`0`：预先获取的ICE池的大小在[JSEP](https://www.w3.org/TR/webrtc/#bib-JSEP)的第3.5.4节和4.1.1节被定义。
 
 #### 4.2.2 `RTCIceCredentialType`枚举值
@@ -90,7 +90,7 @@ enum RTCIceCredentialType {
 
 - password：此凭据是依托于用户名和密码的长期认证方式，[RFC5389](https://www.w3.org/TR/webrtc/#bib-RFC5389)的10.2节有详细描述
 
-- oauth：一个基于OAuth2.0的认证方法，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有描述。<br>  对于OAuth认证，需要向ICE Agent提供3份凭证信息：`kid`（用于RTCIceServer成员变量username），`macKey`和`accessToken`（存在于RTCOAuthCredential字典类型内）。<br>  **注意：本规范并没有定义应用（起OAuth Client的作用）是如何从`Authorization Server`获取`accessToken, kid, macKey`这些凭证的，因为WebRTC只处理ICE Agent与TURN Server之间的交互。例如，应用可能使用PoP（Proof-of-Possession）的Token凭证类型，使用OAuth 2.0隐式授权类型。[RFC](https://www.w3.org/TR/webrtc/#bib-RFC7635)的附录B中有此示例。** <br>  OAuth Client应用，负责刷新凭证信息，并且在`accessToken`失效前利用新的凭证信息更新ICE Agent。OAuth Client可以利用RTCPeerConnection的setConfiguration方法来周期性的刷新TURN凭证。<br>  HMAC密钥（RTCOAuthCredential.macKey）的长度应是一个大于20字节的整数（160位）。<br> **注意：根据[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)4.1节，HMAC密钥必须是对称密钥，但对称密钥会生成大型的访问令牌，可能和单个STUN信息不兼容。** <br>  **注意：目前的STUN/TURN协议只是用了SHA-1/SHA-2族哈希算法来保证消息完整性，这在[RFC5389]的15.3节和[STUN-BIS]的14.6节作了定义。**
+- oauth：一个基于OAuth2.0的认证方法，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有描述。<br>  对于OAuth认证，需要向ICE Agent供应3份凭证信息：`kid`（用于RTCIceServer成员变量username），`macKey`和`accessToken`（存在于RTCOAuthCredential字典类型内）。<br>  **注意：本规范并没有定义应用（起OAuth Client的作用）是如何从`Authorization Server`获取`accessToken, kid, macKey`这些凭证的，因为WebRTC只处理ICE Agent与TURN Server之间的交互。例如，应用可能使用PoP（Proof-of-Possession）的Token凭证类型，使用OAuth 2.0隐式授权类型。[RFC](https://www.w3.org/TR/webrtc/#bib-RFC7635)的附录B中有此示例。** <br>  OAuth Client应用，负责刷新凭证信息，并且在`accessToken`失效前利用新的凭证信息更新ICE Agent。OAuth Client可以利用RTCPeerConnection的setConfiguration方法来周期性的刷新TURN凭证。<br>  HMAC密钥（RTCOAuthCredential.macKey）的长度应是一个大于20字节的整数（160位）。<br> **注意：根据[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)4.1节，HMAC密钥必须是对称密钥，但对称密钥会生成大型的访问令牌，可能和单个STUN信息不兼容。** <br>  **注意：目前的STUN/TURN协议只是用了SHA-1/SHA-2族哈希算法来保证消息完整性，这在[RFC5389]的15.3节和[STUN-BIS]的14.6节作了定义。**
 
 #### 4.2.3 `RTCOAuthCredential`字典
 
@@ -159,7 +159,7 @@ dictionary RTCIceServer {
 
 #### 4.2.5 `RTCIceTransportPolicy`枚举值
 
-如[JSEP](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.1)4.1.1节所定义，如果`RTCConfiguration`的`iceTransportPolicy`成员被指定，它将定义浏览器使用的ICE候选策略[JSEP 3.5.3节](https://www.w3.org/TR/webrtc/#bib-JSEP)，以向应用提供允许的候选者；只有候选者可被用于连接性检查。
+如[JSEP](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.1)4.1.1节所定义，如果`RTCConfiguration`的`iceTransportPolicy`成员被指定，它将定义浏览器使用的ICE候选策略[JSEP 3.5.3节](https://www.w3.org/TR/webrtc/#bib-JSEP)，以向应用供应允许的候选者；只有候选者可被用于连接性检查。
 
 ```webidl
 enum RTCIceTransportPolicy {
@@ -210,9 +210,9 @@ enum RTCRtcpMuxPolicy {
 
 > <big>风险特征</big>：支持非多路复用RTP/RTCP的本规范的各个方面被标记为存在风险的特征，因为实现者没有明确的承诺。包括：1. 对于`negotiate`值，实现者没有明确承诺与此相关的行为。 2.在`RTCRtpSender`和`RTCRtpReceiver`之内支持`rtcpTransport`属性。
 
-#### 4.2.8 提供/应答选项
+#### 4.2.8 供应/应答选项
 
-这些字典类型描述了可用于提供/应答创建过程的选项。
+这些字典类型描述了可用于供应/应答创建过程的选项。
 
 ```webidl
 dictionary RTCOfferAnswerOptions {
@@ -258,11 +258,11 @@ enum RTCSignalingState {
 
 枚举类型描述：
 
-- stable：过程中无提供/应答的交换。这也是初始状态，本地和远程描述都是空的。
-- have-local-offer：本地的`提供`类型的描述已经被成功应用了。
-- have-remote-offer：远程的`提供`类型的描述已经被成功应用了。
-- have-local-pranswer：远程的`提供`类型的描述已经被成功应用且本地的`对端应答`类型的描述已被成功应用。
-- have-remote-pranswer：本地的`提供`类型的描述已经被成功应用且远程的`对端应答`类型的描述已被成功应用。
+- stable：过程中无供应/应答的交换。这也是初始状态，本地和远程描述都是空的。
+- have-local-offer：本地的`供应`类型的描述已经被成功应用了。
+- have-remote-offer：远程的`供应`类型的描述已经被成功应用了。
+- have-local-pranswer：远程的`供应`类型的描述已经被成功应用且本地的`对端应答`类型的描述已被成功应用。
+- have-remote-pranswer：本地的`供应`类型的描述已经被成功应用且远程的`对端应答`类型的描述已被成功应用。
 - closed：`RTCPeerConnection`已经被关闭，其[IsClosed]槽值变为true。
 
 **信号状态转移图**
@@ -349,12 +349,12 @@ enum RTCIceConnectionState {
 
 ### 4.4 `RTCPeerConnection`接口
 
-[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)规范从整体介绍了`RTCPeerConnection`的运作细节。下文会适时提供对[JSEP]特定小节的参考。
+[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)规范从整体介绍了`RTCPeerConnection`的运作细节。下文会适时供应对[JSEP]特定小节的参考。
 
 #### 4.4.1 操作
 
 调用`new RTCPeerConnection(configuration)`创建一个`RTCPeerConnection`对象。
-`configuration.servers`包含了ICE用以探测并访问服务器的相关信息。应用可以为同一类型的服务提供多个实例，并且任何TURN服务器也可以用作STUN服务器，用于收集服务器自反候选者。
+`configuration.servers`包含了ICE用以探测并访问服务器的相关信息。应用可以为同一类型的服务供应多个实例，并且任何TURN服务器也可以用作STUN服务器，用于收集服务器自反候选者。
 一个`RTCPeerConnection`对象持有 **信令状态，连接状态，ICE收集状态和ICE连接状态** 四个状态。它们在对象创建时被初始化。
 `RTCPeerConnection`的ICE协议实现部分用 **ICE agent** 来表示。`RTCPeerConnection`中与[ICE Agent](http://w3c.github.io/webrtc-pc/#dfn-ice-agent)交互的方法被分别命名为：` addIceCandidate, setConfiguration, setLocalDescription, setRemoteDescription和close`。与这些交互相关的小节都被记录在[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)文档中。ICE Agent同样向用户代理指示了代表其内部的`RTCIceTransport`状态何时发生变化，这在[5.6 RTCIceTransport Interface](http://w3c.github.io/webrtc-pc/#rtcicetransport)。本节中列举的任务源即网络任务源[networking task source](https://www.w3.org/TR/html51/webappapis.html#networking-task-source)
 
@@ -455,12 +455,12 @@ enum RTCIceConnectionState {
     1. 如果 *连接* 的[IsClosed]槽值为`true`，则终止以下步骤。
     2. 如果 *描述* 被设为本地描述，则运行以下步骤中的某一个：
         - 如果 *描述* 的类型为`"offer"`，设置连接的[PendingLocalDescription]槽为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-local-offer"`。
-        - 如果 *描述* 的类型为`"answer"`， 则它完成了一次提供或应答的谈判。将 *连接* 的[CurrentLocalDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentRemoteDescription]设置为[PendingRemoteDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *连接* 的信令状态设为`"stable"`。
+        - 如果 *描述* 的类型为`"answer"`， 则它完成了一次供应或应答的谈判。将 *连接* 的[CurrentLocalDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentRemoteDescription]设置为[PendingRemoteDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *连接* 的信令状态设为`"stable"`。
         - 如果 *描述* 类型为`"rollback"`，则这是一个回滚操作。将 *连接* 的[PendingLocalDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
         - 如果 *描述* 类型为`"pranswer"`，则把 *连接* 的[PendingLocalDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-local-pranswer"`。
     3. 否则，如果 *描述* 被设为远程描述，则运行以下步骤中的某一个：
         - 如果 *描述* 类型为`"rollback"`且信令状态为`"stable"`，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
         - 如果 *描述* 的类型为`"offer"`，设置连接的[PendingRemoteDescription]槽为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-remote-offer"`。
-        - 如果 *描述* 的类型为`"answer"`，则它完成了一次提供或应答的谈判。将 *连接* 的[CurrentRemoteDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentLocalDescription]设置为[PendingLocalDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *连接* 的信令状态设为`"stable"`。
+        - 如果 *描述* 的类型为`"answer"`，则它完成了一次供应或应答的谈判。将 *连接* 的[CurrentRemoteDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentLocalDescription]设置为[PendingLocalDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *连接* 的信令状态设为`"stable"`。
         - 如果 *描述* 类型为`"rollback"`，则这是一个回滚操作。将 *连接* 的[PendingRemoteDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
         - 如果 *描述* 类型为`"pranswer"`，则把 *连接* 的[PendingRemoteDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-remote-pranswer"`。
