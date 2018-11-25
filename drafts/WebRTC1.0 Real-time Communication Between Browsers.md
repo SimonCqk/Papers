@@ -365,41 +365,41 @@ enum RTCIceConnectionState {
 1. 如果以下任何一个步骤出现了未知错误，都会抛出`UnkownError`错误，并在"message"域设置相应的错误描述。
 2. *connection*应是最新创建的`RTCPeerConnection`对象。
 3. 如果 *configuration* 中的凭证域`certificates`非空，则将来要对每个值检查是否过期。如果证书已过期或证书内部的[origin]插槽与当前证书的插槽不匹配，则会抛出`InvalidAccessError`，否则保存此凭证。如果没有指定`certificates`的值，一个或多个新`RTCCertificates`实例将生成供`RTCPeerConnection`实例使用。以上步骤可能是 *异步* 发生的，因此在步骤子序列运行过程中，`certificates`的值可能还是未定义的。如[RTCWEB-SECURITY 4.3.2.3](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-SECURITY)所说，WebRTC使用自签名而不是公钥基础结构（PKI）证书，因此到期检查是为了确保密钥不会无限期使用，同时不需要额外的证书检查。
-4. 初始化ICE Agent的 *连接*。
-5. 填充 *连接* 内部的[Configuration] 槽。[设置配置](http://w3c.github.io/webrtc-pc/#set-pc-configuration)的规则由 *配置* 指定。
-6. 填充 *连接* 内部的[IsClosed] 槽，初始化为`false`。
-7. 填充 *连接* 内部的[NegotiationNeeded] 槽，初始化为`false`。
-8. 填充 *连接* 内部的[SctpTransport] 槽，初始化为`null`。
-9. 填充 *连接* 内部的[Operations] 槽，代表一个操作队列，初始化为空列表。
-10. 填充 *连接* 内部的[LastOffer] 槽，初始化为空字符串。
-11. 填充 *连接* 内部的[LastAnswer] 槽，初始化为空字符串。
-12. 设置 *连接* 的信令状态为`"stable"`。
-13. 设置 *连接* 的ICE连接状态为`"new"`。
-14. 设置 *连接* 的ICE收集状态为`"new"`。
-15. 设置 *连接* 的连接状态为`"new"`。
-16. 填充 *连接* 内部的[PendingLocalDescrtiption] 槽，初始化为`null`。
-17. 填充 *连接* 内部的[CurrentLocalDescrtiption] 槽，初始化为`null`。
-18. 填充 *连接* 内部的[PendingRemoteDescrtiption] 槽，初始化为`null`。
-19. 填充 *连接* 内部的[CurrentRemoteDescrtiption] 槽，初始化为`null`。
-20. 返回 *连接* 。
+4. 初始化ICE Agent的 *connection*。
+5. 填充 *connection* 内部的[Configuration] 槽。[设置配置](http://w3c.github.io/webrtc-pc/#set-pc-configuration)的规则由 *configuration* 指定。
+6. 填充 *connection* 内部的[IsClosed] 槽，初始化为`false`。
+7. 填充 *connection* 内部的[NegotiationNeeded] 槽，初始化为`false`。
+8. 填充 *connection* 内部的[SctpTransport] 槽，初始化为`null`。
+9. 填充 *connection* 内部的[Operations] 槽，代表一个操作队列，初始化为空列表。
+10. 填充 *connection* 内部的[LastOffer] 槽，初始化为空字符串。
+11. 填充 *connection* 内部的[LastAnswer] 槽，初始化为空字符串。
+12. 设置 *connection* 的信令状态为`"stable"`。
+13. 设置 *connection* 的ICE连接状态为`"new"`。
+14. 设置 *connection* 的ICE收集状态为`"new"`。
+15. 设置 *connection* 的连接状态为`"new"`。
+16. 填充 *connection* 内部的[PendingLocalDescrtiption] 槽，初始化为`null`。
+17. 填充 *connection* 内部的[CurrentLocalDescrtiption] 槽，初始化为`null`。
+18. 填充 *connection* 内部的[PendingRemoteDescrtiption] 槽，初始化为`null`。
+19. 填充 *connection* 内部的[CurrentRemoteDescrtiption] 槽，初始化为`null`。
+20. 返回 *connection* 。
 
 #### *4.4.1.2 操作入队*
 
 一个`RTCPeerConnection`对象持有一个 **操作队列（operations queue）**，槽名[Operations]，它保证了队列中只有一个操作能异步并发地执行。如果后续的调用在之前的`promise`对象[有执行结果](http://w3c.github.io/webrtc-pc/#dfn-settled)之前产生了，它们会被加入队列中直到之前的`promise`有了结果才会被依次调用。
 让某操作进入`RTCPeerConnection`对象的队列中，需按照以下步骤执行：
 
-1. *连接* 即`RTCPeerConnection`对象。
-2. 如果 *连接* 的[IsClosed]槽为`"true"`，用`promise`包装一个新创建的`InvalidStateError`并返回。
-3. 让 *操作* 成为即将入队的那一项。
+1. *connection* 即`RTCPeerConnection`对象。
+2. 如果 *connection* 的[IsClosed]槽为`"true"`，用`promise`包装一个新创建的`InvalidStateError`并返回。
+3. 让 *connection* 成为即将入队的那一项。
 4. 创建新`promise`，名为`p`。
-5. 将 *操作* 添加至[Operations]队尾。
+5. 将 *connection* 添加至[Operations]队尾。
 6. 如果[Operations]的长度为1，则执行该操作。
 7. 在[履行](http://w3c.github.io/webrtc-pc/#dfn-fulfill)或[拒绝](http://w3c.github.io/webrtc-pc/#dfn-reject)该操作返回的`promise`之后，运行以下步骤：
-   1. 如果 *连接* 的[IsClosed]槽为`true`，终止以下步骤。
+   1. 如果 *connection* 的[IsClosed]槽为`true`，终止以下步骤。
    2. 如果操作返回的`promise`履行并伴随了执行结果，把结果赋给`p`。
    3. 如果操作返回的`pormose`拒绝并伴随了错误结果，把结果赋给`p`。
    4. 根据`p`值，执行以下步骤：
-    1. 如果 *连接* 的[IsClosed]槽为`true`，终止以下步骤。
+    1. 如果 *connection* 的[IsClosed]槽为`true`，终止以下步骤。
     2. 移除[Operations]队列中的第一个元素。
     3. 如果[Operations]队列非空，执行队列中的第一个操作。
 8. 返回`p`。
@@ -408,20 +408,20 @@ enum RTCIceConnectionState {
 
 `RTCPeerConnection`集成了连接状态（connection state)。当`RTCDtlsTransport`或`RTCIceTransport`状态转移或[IsClosed]槽值为`true`时，用户代理必须将包含以下步骤的任务入队以 **更新连接状态** ：
 
-1. *连接* 即`RTCPeerConnection`对象。
+1. *connection* 即`RTCPeerConnection`对象。
 2. `newState`变量值即`RTCPeerConnectionState`枚举值中派生的新状态值。
-3. 如果 *连接* 的连接状态与`newState`值相同，终止以下步骤。
-4. 将 *连接* 的 连接状态设置为`newState`。
-5. 触发此 *连接* 的`connectionstatechange`事件。
+3. 如果 *connection* 的连接状态与`newState`值相同，终止以下步骤。
+4. 将 *connection* 的 连接状态设置为`newState`。
+5. 触发此 *connection* 的`connectionstatechange`事件。
 
 #### *4.4.1.4 更新ICE收集状态*
 
 为了**更新** `RTCPeerConnection`实例的 **ICE收集状态**，用户代理必须将包含以下步骤的任务入队：
 
-1. 如果 *连接* 的[IsClosed]槽值为`true`，终止以下步骤。
+1. 如果 *connection* 的[IsClosed]槽值为`true`，终止以下步骤。
 2. `newState`变量值即`RTCIceGatheringState`枚举值中派生的新状态值。
-3. 如果 *连接* 的ICE收集状态与`newState`值相同，终止以下步骤。
-4. 触发此 *连接* 的`icegatheringstatechange`事件。
+3. 如果 *connection* 的ICE收集状态与`newState`值相同，终止以下步骤。
+4. 触发此 *connection* 的`icegatheringstatechange`事件。
 5. 如果`newState`值为`"completed"`，使用`RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件，其候选者属性设为`null`。
 
 > 注意：触发候选者属性为`null`的事件是为了确保传统兼容性。新代码应该监控收集`RTCIceTransport`或`RTCPeerConnection`的状态。
@@ -430,49 +430,70 @@ enum RTCIceConnectionState {
 
 为了**更新** `RTCPeerConnection`实例的 **ICE连接状态**，用户代理必须将包含以下步骤的任务入队：
 
-1. 如果 *连接* 的[IsClosed]槽值为`true`，终止以下步骤。
+1. 如果 *connection* 的[IsClosed]槽值为`true`，终止以下步骤。
 2. `newState`变量值即`RTCIceConnectionState`枚举值中派生的新状态值。
-3. 如果 *连接* 的ICE连接状态与`newState`值相同，终止以下步骤。
-4. 将 *连接* 的 ICE连接状态设置为`newState`。
+3. 如果 *connection* 的ICE连接状态与`newState`值相同，终止以下步骤。
+4. 将 *connection* 的 ICE连接状态设置为`newState`。
 5. 触发此连接的`iceconnectionstatechange`事件。
 
 #### *4.4.1.6 设置RTCSessionDescription*
 
-为了设置`RTCPeerConnection`对象的`RTCSessionDescription`，将以下步骤加入 *连接* 的操作队列：
+为了设置`RTCPeerConnection`对象的`RTCSessionDescription`，将以下步骤加入 *connection* 的操作队列：
 
 1. 变量`p`为新的`promise`对象。
-2. 并行启动进程应用[JSEP 5.5&5.6](http://w3c.github.io/webrtc-pc/#bib-JSEP)中的 *描述*。
+2. 并行启动进程应用[JSEP 5.5&5.6](http://w3c.github.io/webrtc-pc/#bib-JSEP)中的 *description*。
     1. 如果应用描述的进程因为某个原因异常退出了，用户代理必须将包含以下步骤的任务入队：
-        1. 如果 *连接* 的[IsClosed]槽值为`true`，则终止以下步骤。
-        2. 如果 *描述* 类型对于当前的连接信令状态是非法的，如[JESP 5.5&5.6](http://w3c.github.io/webrtc-pc/#bib-JSEP)中提到的，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
-        3. 如果 *描述* 被设为本地描述，且如果`description.type`是`offer`，`description.sdp`与连接的[LastOffer]槽值不同，则拒绝此`promise`并创建一个新的`InvalidModifcationError`错误然后终止步骤。
-        4. 如果 *描述* 被设为本地描述，且如果`description.type`是`rollback`，信令状态是`"stable"`，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
-        5. 如果 *描述* 被设为本地描述，且如果`description.type`是`answer`或`pranswer`，`description.sdp`与连接的[LastAnswer]槽值不同，则拒绝此`promise`并创建一个新的`InvalidModifcationError`错误然后终止步骤。
-        6. 如果 *描述* 的内容不合SDP语法，则以[RTCError](http://w3c.github.io/webrtc-pc/#dfn-rtcerror) （`errorDetail`被设置为"sdp-syntax-error"并把`sdpLineNumber`设置为检测到的SDP内容中非法语法所在行）拒绝此`promise`并终止步骤。
-        7.  如果 *描述* 被设为远程描述，则`RTCRtcpMuxPolicy`是必须项，若远程描述并没有使用RTCP复用，则拒绝此`promise`并创建一个新的`InvalidAccessError`错误然后终止步骤。
-        8.  如果 *描述* 中的内容非法，则拒绝此`promise`并创建一个新的`InvalidAccessError`错误然后终止步骤。
+        1. 如果 *connection* 的[IsClosed]槽值为`true`，则终止以下步骤。
+        2. 如果 *description* 类型对于当前的连接信令状态是非法的，如[JESP 5.5&5.6](http://w3c.github.io/webrtc-pc/#bib-JSEP)中提到的，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
+        3. 如果 *description* 被设为本地描述，且如果`description.type`是`offer`，`description.sdp`与连接的[LastOffer]槽值不同，则拒绝此`promise`并创建一个新的`InvalidModifcationError`错误然后终止步骤。
+        4. 如果 *description* 被设为本地描述，且如果`description.type`是`rollback`，信令状态是`"stable"`，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
+        5. 如果 *description* 被设为本地描述，且如果`description.type`是`answer`或`pranswer`，`description.sdp`与连接的[LastAnswer]槽值不同，则拒绝此`promise`并创建一个新的`InvalidModifcationError`错误然后终止步骤。
+        6. 如果 *description* 的内容不合SDP语法，则以[RTCError](http://w3c.github.io/webrtc-pc/#dfn-rtcerror) （`errorDetail`被设置为"sdp-syntax-error"并把`sdpLineNumber`设置为检测到的SDP内容中非法语法所在行）拒绝此`promise`并终止步骤。
+        7.  如果 *description* 被设为远程描述，则`RTCRtcpMuxPolicy`是必须项，若远程描述并没有使用RTCP复用，则拒绝此`promise`并创建一个新的`InvalidAccessError`错误然后终止步骤。
+        8.  如果 *description* 中的内容非法，则拒绝此`promise`并创建一个新的`InvalidAccessError`错误然后终止步骤。
         9.  对于其他所有错误，拒绝`promise`并创建一个`OperationError`。
-    2.  如果 *描述* 被成功应用，用户代理必须将包含以下步骤的任务入队：
-        1. 如果 *连接* 的[IsClosed]槽值为`true`，则终止以下步骤。
-        2. 如果 *描述* 被设为本地描述，则运行以下步骤中的某一个：
-            - 如果 *描述* 的类型为`"offer"`，设置连接的[PendingLocalDescription]槽为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-local-offer"`。
-            - 如果 *描述* 的类型为`"answer"`， 则它完成了一次提供或应答的谈判。将 *连接* 的[CurrentLocalDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentRemoteDescription]设置为[PendingRemoteDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *连接* 的信令状态设为`"stable"`。
-            - 如果 *描述* 类型为`"rollback"`，则这是一个回滚操作。将 *连接* 的[PendingLocalDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
-            - 如果 *描述* 类型为`"pranswer"`，则把 *连接* 的[PendingLocalDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-local-pranswer"`。
-        3. 否则，如果 *描述* 被设为远程描述，则运行以下步骤中的某一个：
-            - 如果 *描述* 类型为`"rollback"`且信令状态为`"stable"`，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
-            - 如果 *描述* 的类型为`"offer"`，设置连接的[PendingRemoteDescription]槽为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-remote-offer"`。
-            - 如果 *描述* 的类型为`"answer"`，则它完成了一次提供或应答的谈判。将 *连接* 的[CurrentRemoteDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentLocalDescription]设置为[PendingLocalDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *连接* 的信令状态设为`"stable"`。
-            - 如果 *描述* 类型为`"rollback"`，则这是一个回滚操作。将 *连接* 的[PendingRemoteDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
-            - 如果 *描述* 类型为`"pranswer"`，则把 *连接* 的[PendingRemoteDescription]槽设置为一个以 *描述* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-remote-pranswer"`。
-        4. 如果 *描述* 类型为`"answer"`，启动一个与现有SCTP关联的闭包，如[SCTP-SDP](http://w3c.github.io/webrtc-pc/#bib-SCTP-SDP)的10.3节和10.4节中所定义，并把 *连接* 的[SctpTransport]槽值设为`null`。
-        5. 如果 *描述* 类型为`"answer"`或`"pranswer"`，则运行以下步骤：
-            1. 如果 *描述* 发起与一个新的SCTP建立关联，如[SCTP-SDP](http://w3c.github.io/webrtc-pc/#bib-SCTP-SDP)的10.3节和10.4节中所定义，则以`"connecting"`为初始状态，创建一个新的`RTCSctpTransport`实例，并赋给[SctpTransport]槽。
-            2. 否则，如果SCTP关联已创建完毕，而SDP属性的"max-message-size"也被更新了，则对 *连接* 的[SctpTransport]槽的最大消息长度的数据进行更新。
-            3. 如果 *描述* 对SCTP传输中的DTLS角色进行了谈判，且存在一个`id`为`null`的`RTCDataChannel`，则根据[RTCWEB-DATA-PROTOCAL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)生成一个ID。如果没有可用的ID，则运行以下步骤：
-                1. *通道* 即当前无可用ID的`RTCDataChannel`对象。
-                2. 将 *通道* 的[ReadyState]槽值设为`"closed"`。
-                3. 在当前 *通道* 使用`RTCErrorEvent`接口触发名为`"error"`，且`errorDetail`属性被设为"data-channel-failure"的事件。
-                4. 在当前 *通道* 触发名为`close`的事件。
+    2.  如果 *description* 被成功应用，用户代理必须将包含以下步骤的任务入队：
+        1. 如果 *connection* 的[IsClosed]槽值为`true`，则终止以下步骤。
+        2. 如果 *description* 被设为本地描述，则运行以下步骤中的某一个：
+            - 如果 *description* 的类型为`"offer"`，设置连接的[PendingLocalDescription]槽为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-local-offer"`。
+            - 如果 *description* 的类型为`"answer"`， 则它完成了一次提供或应答的谈判。将 *connection* 的[CurrentLocalDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentRemoteDescription]设置为[PendingRemoteDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *connection* 的信令状态设为`"stable"`。
+            - 如果 *description* 类型为`"rollback"`，则这是一个回滚操作。将 *connection* 的[PendingLocalDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
+            - 如果 *description* 类型为`"pranswer"`，则把 *connection* 的[PendingLocalDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-local-pranswer"`。
+        3. 否则，如果 *description* 被设为远程描述，则运行以下步骤中的某一个：
+            - 如果 *description* 类型为`"rollback"`且信令状态为`"stable"`，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
+            - 如果 *description* 的类型为`"offer"`，设置连接的[PendingRemoteDescription]槽为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-remote-offer"`。
+            - 如果 *description* 的类型为`"answer"`，则它完成了一次提供或应答的谈判。将 *connection* 的[CurrentRemoteDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentLocalDescription]设置为[PendingLocalDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *connection* 的信令状态设为`"stable"`。
+            - 如果 *description* 类型为`"rollback"`，则这是一个回滚操作。将 *connection* 的[PendingRemoteDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
+            - 如果 *description* 类型为`"pranswer"`，则把 *connection* 的[PendingRemoteDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-remote-pranswer"`。
+        4. 如果 *description* 类型为`"answer"`，启动一个与现有SCTP关联的闭包，如[SCTP-SDP](http://w3c.github.io/webrtc-pc/#bib-SCTP-SDP)的10.3节和10.4节中所定义，并把 *connection* 的[SctpTransport]槽值设为`null`。
+        5. 如果 *description* 类型为`"answer"`或`"pranswer"`，则运行以下步骤：
+            1. 如果 *description* 发起与一个新的SCTP建立关联，如[SCTP-SDP](http://w3c.github.io/webrtc-pc/#bib-SCTP-SDP)的10.3节和10.4节中所定义，则以`"connecting"`为初始状态，创建一个新的`RTCSctpTransport`实例，并赋给[SctpTransport]槽。
+            2. 否则，如果SCTP关联已创建完毕，而SDP属性的"max-message-size"也被更新了，则对 *connection* 的[SctpTransport]槽的最大消息长度的数据进行更新。
+            3. 如果 *description* 对SCTP传输中的DTLS角色进行了谈判，且存在一个`id`为`null`的`RTCDataChannel`，则根据[RTCWEB-DATA-PROTOCAL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)生成一个ID。如果没有可用的ID，则运行以下步骤：
+                1. *channel* 即当前无可用ID的`RTCDataChannel`对象。
+                2. 将 *channel* 的[ReadyState]槽值设为`"closed"`。
+                3. 在当前 *channel* 使用`RTCErrorEvent`接口触发名为`"error"`，且`errorDetail`属性被设为"data-channel-failure"的事件。
+                4. 在当前 *channel* 触发名为`close`的事件。
         6. 将 *trackEventInits, muteTracks, addList, removeList* 置空。
-        7. 如果 *描述* 被设为本地描述，则运行以下步骤：
+        7. 如果 *description* 被设为本地描述，则运行以下步骤：
+            1. 为 *description* 中的每个[媒体描述](https://www.w3.org/TR/webrtc/#dfn-media-description)执行：
+                1. 如果媒体描述尚未与一个`RTCRtpTransceiver`对象关联，运行以下步骤：
+                    1. *transceiver* 即创建媒体描述的`RTCRtpTransceiver`对象。
+                    2. 将 *transceiver* 的`mid`值设为媒体描述中的对应值。
+                    3. 如果 *transceiver* 的[Stopped]槽值为`true`，停止此子步骤。
+                    4. 如果根据[Bundle]将媒体描述表示为“使用现有媒体传输”，并使transport和rtcpTransport变量成为分别表示传输中的RTP组件和RTCP组件的`RTCDtlsTransport`对象。
+                    5. 否则，使transport和rtcpTransport变量成为新创建的`RTCDtlsTransport`对象，每个都持有一个新创建的底层`RTCIceTransport`。如果根据[RFC5761](https://www.w3.org/TR/webrtc/#bib-RFC5761)协商RTCP多路复用，或者 *connection* 的`RTCRtcpMuxPolicy`为`require`，则不要创建任何特定的RTCP传输对象，而是让rtcpTransport等于transport变量。
+                    6. *transceiver.[Sender].[SenderTransport]* 设为transport。
+                    7. *transceiver.[Sender].[SenderRtcpTransport]* 设为rtcpTransport。
+                    8. *transceiver.[Receiver].[ReceiverTransport]* 设为transport。
+                    9. *transceiver.[Receiver].[ReceiverRtcpTransport]* rtcpTransport。
+                2. 设 *transceiver* 为已与媒体描述关联的`RTCRtpTransceiver`。
+                3. 如果 *transceiver* 的[Stopped]槽值为`true`，则终止以下子步骤。
+                4. 设 *direction* 为代表媒体描述方向的`RTCRtpTransceiverDirection`值。
+                5. 如果 *direction* 值为`sendrecv`或`recvonly`，则将 *transceiver* 的[Receptive]槽的值设为`true`，否则设为`false`。
+                6. 如果 *description* 的类型为`answer`或`pranswer`，则运行以下步骤：
+                    1. 如果 *direction* 值为`sendonly`或`inactive`，且 *transceiver* 的[FiredDirection]槽值为`sendrecv`或`recvonly`，则继续运行以下步骤：
+                        1. 给定transceiver.[Receiver]，2个空列表和removeList，设置相关联的远程媒体流。
+                        2. 在给定 *transceiver* 和 *muteTracks（静音轨）* 的情况下，处理媒体描述的远程媒体轨的移除。
+                    2. 将 *transceiver* 的[CurrentDirection]槽和[FiredDirection]槽设为 *direction* 。
+            8. 如果 *description* 被设为远程描述，则运行以下步骤：
