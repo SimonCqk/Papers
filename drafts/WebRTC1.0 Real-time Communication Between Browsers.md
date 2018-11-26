@@ -566,3 +566,49 @@ enum RTCIceConnectionState {
     如[JSEP 4.1.16](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.16)定义的，如果一个新的服务器列表取代了当前ICE代理的服务器列表，下一收集阶段之前都不会有动作执行。如果某段脚本希望立即被执行，则应该先重启ICE。无论如何，如果ICE候选池的大小非零，所有现有的池内候选者都会被忽略，新的候选者会从新服务器中收集。
 12. 将当前配置保存至内部的[Configuration]槽。
 
+### 4.4.2 接口定义
+
+本节中介绍的`RTCPeerConnection`接口通过本规范中的多个部分接口进行了扩展。值得注意的是，[RTC Media API](https://www.w3.org/TR/webrtc/#dfn-rtp-media-api)部分添加了发送和接收[MediaStreamTrack](https://www.w3.org/TR/webrtc/#dfn-mediastreamtrack)对象的API。
+
+```webidl
+[Constructor(optional RTCConfiguration configuration),
+ Exposed=Window]
+interface RTCPeerConnection : EventTarget {
+    Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options);
+    Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options);
+    Promise<void>                      setLocalDescription(RTCSessionDescriptionInit description);
+    readonly attribute RTCSessionDescription? localDescription;
+    readonly attribute RTCSessionDescription? currentLocalDescription;
+    readonly attribute RTCSessionDescription? pendingLocalDescription;
+    Promise<void>                      setRemoteDescription(RTCSessionDescriptionInit description);
+    readonly attribute RTCSessionDescription? remoteDescription;
+    readonly attribute RTCSessionDescription? currentRemoteDescription;
+    readonly attribute RTCSessionDescription? pendingRemoteDescription;
+    Promise<void>                      addIceCandidate(RTCIceCandidateInit candidate);
+    readonly attribute RTCSignalingState      signalingState;
+    readonly attribute RTCIceGatheringState   iceGatheringState;
+    readonly attribute RTCIceConnectionState  iceConnectionState;
+    readonly attribute RTCPeerConnectionState connectionState;
+    readonly attribute boolean?               canTrickleIceCandidates;
+    static sequence<RTCIceServer>      getDefaultIceServers();
+    RTCConfiguration                   getConfiguration();
+    void                               setConfiguration(RTCConfiguration configuration);
+    void                               close();
+             attribute EventHandler           onnegotiationneeded;
+             attribute EventHandler           onicecandidate;
+             attribute EventHandler           onicecandidateerror;
+             attribute EventHandler           onsignalingstatechange;
+             attribute EventHandler           oniceconnectionstatechange;
+             attribute EventHandler           onicegatheringstatechange;
+             attribute EventHandler           onconnectionstatechange;
+};
+```
+
+构造器：
+
+- **RTCPeerConnection** ：参阅[RTCPeerConnection构造算法](https://www.w3.org/TR/webrtc/#dom-peerconnection)。
+
+属性：
+
+- RTCSessionDescription类型的`localDescription`，只读，可空：如果[PendingLocalDescription]槽非空，则`localDescription`属性必须返回它，否则返回[CurrentLocalDescription]。<br>  注意，[CurrentLocalDescription].sdp和[PendingLocalDescription].sdp与传入`setLocalDescription`的SDP值不必是字符串值相等的（例如，SDP可能被解析后又格式化了，或ICE候选者有新增）。
+- RTCSessionDescription类型的`currentLocalDescription`，只读，可空：
