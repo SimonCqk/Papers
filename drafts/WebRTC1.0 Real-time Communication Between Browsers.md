@@ -497,3 +497,72 @@ enum RTCIceConnectionState {
                         2. 在给定 *transceiver* 和 *muteTracks（静音轨）* 的情况下，处理媒体描述的远程媒体轨的移除。
                     2. 将 *transceiver* 的[CurrentDirection]槽和[FiredDirection]槽设为 *direction* 。
             8. 如果 *description* 被设为远程描述，则运行以下步骤：
+                1. 为 *description* 中的每个媒体描述执行：
+                    1. 设 *direction* 为代表媒体描述方向的`RTCRtpTransceiverDirection`值，但在对等连接的角度看来，发送和接受的方向是相反的。
+                    2. 如[JESP 5.10](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.10)所述，尝试找到现有的`RTCRtpTransceiver`对象，即 *transceiver* ，以代表媒体描述。
+                    3. 如果没有找到合适的收发器（ *transceiver* 为空），则运行以下步骤：
+                        1. 从媒体描述创建`RTCRtpSender`对象 *sender* 。
+                        2. 从媒体描述创建`RTCRtpReceiver`对象 *receiver* 。
+                        3. 根据 *sender, receiver* 以及一个值为`recvonly`的`RTCRtpTransceiverDirection`创建一个`RTCRtpTransceiver`，即成为 *transceiver* 。
+                    4. 将 *transceiver* 的`mid`值设为媒体描述中的对应值。如果媒体描述没有MID，且 *transceiver* 的`mid`未定义，则生成一个随机值，在[JSEP 5.10](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.10)中有相关描述。
+                    5. 如果 *direction* 值为`sendrecv`或`recvonly`，则使 *msids* 为媒体描述指示的 *transceiver.[Receiver].[ReceiverTrack]* 相关联的MSID列表，否则 *msids* 为空。
+                    6. 给定 *transceiver.[Receiver], msids, addList, removeList* ，设置关联的远程媒体流。
+                    7. 给定 *transceiver, trackEventInits*， 如果前一步骤使 *addList* 的长度增长了，或 *transceiver* 的[FireDirection]槽为`sendrecv`或`recvonly`，则为媒体描添加一个远程媒体轨。
+                    8. 如果 *direction* 值为`sendonly`或`inactive`，则将 *transceiver* 的[Receptive]槽值设为`false`。
+                    9. 如果 *direction* 值为`sendonly`或`inactive`，且 *transceiver* 的[FiredDirection]槽值为`sendrecv`或`recvonly`，则给定 *transceiver, muteTracks* ， 则为媒体描述移除一个远程媒体轨。
+                    10. 把 *direction* 赋给 *transceiver* 的[FiredDirection]槽。
+                    11. 如果 *description* 的类型为`answer`或`pranswer`，则运行以下步骤：
+                        1. 把 *direction* 赋给 *transceiver* 的[CurrentDirection]和[Direction]槽。
+                        2. 根据[BUNDLE](http://w3c.github.io/webrtc-pc/#bib-BUNDLE)，让 *transport, rtcpTransport* 成为代表与 *transceiver* 相关联的RTP, RTCP媒体传输组件的`RTCDtlsTransport`对象。
+                        3. 设 *transceiver.[Sender].[SenderTransport]* 为 *transport* 。
+                        4. 设 *transceiver.[Sender].[SenderRtcpTransport]* 为 *rtcpTransport* 。
+                        5. 设 *transceiver.[Receiver].[ReceiverTransport]* 为 *transport* 。
+                        6. 设 *transceiver.[Receiver].[ReceiverRtcpTransport]* 为 *rtcpTransport* 。
+                    12. 如果媒体描述被拒绝，且 *transceiver* 未准备好停止，则将它停止。
+            9. 如果 *description* 的类型为`rollback`，则运行以下步骤：
+                1.  如果`RTCRtpTransceiver`的`mid`值被即将回滚的`RTCSessionDescription`对象设为一个非空值，则将收发器的`mid`值设为空（null）。
+                2.  如果`RTCRtpTransceiver`是通过即将回滚的`RTCSessionDescription`创建的，且媒体轨没有通过调用`addTrack`附加到`RCTRtpTransceiver`，则从 *connection* 的transceiver列表移除该transceiver。
+                3.  对于那些留在 *connection* 中的`RTCRtpTransceiver`对象，将即将回滚的`RTCSessionDescription`所在应用造成的[CurrentDirection]和[Receptive]两个槽的所有改动都复原。
+                4.  将 *connection* 的[SctpTransport]槽值重置为上次信令状态为`stable`时的值。
+            10. 如果 *connection* 的信令状态改变了，触发一个名为`signalingstatechange`的事件。
+            11. 对 *muteTracks* 中的每个 *track* ，将其静音状态设为`true`。
+            12. 对 *removeList* 中的每个媒体流（stream）和媒体轨（track），从媒体流中移除媒体轨。
+            13. 对 *addList* 中的每个媒体流（stream）和媒体轨（track），将媒体轨添加至媒体流。
+            14. 对于 *trackEventInits* 中的每个入口entry，使用`RTCTrackEvent`接口触发名为`track`的事件，其`receiver`属性初始化为`entry.receiver`，`track`属性初始化为`entry.track`，`streams`属性初始化为`entry.streams`，`transceiver`属性初始化为`entry.transceiver`。
+            15. 如果当前 *connection* 的信令状态为`stable`，则更新谈判所需的标志位。如果更新前后 *connection* 的[NegotiationNeeded]槽值一直为`true`，则将包含以下步骤的任务加入队列：
+                1.  若 *connection* 的[IsClosed]槽值为`true`，则终止后续步骤。
+                2.  若 *connection* 的[NegotiationNeeded]槽值为`false`，则终止后续步骤。
+                3.  触发名为`negotiationneeded`事件。
+            16. 解析未定义的`p`。
+    3. 返回变量`p`。
+
+#### *4.4.1.7 设置配置*
+
+为了 **设置配置** ，运行以下步骤：
+
+1.  *configuration* 即要被处理的`RTCConfiguration`字典。
+2.  *connection* 即目标`RTCPeerConnection`对象。
+3.  如果`configuration.peerIdentity`已被设置，且其值与目标对等连接的对应值不相同，则抛出一个`InvalidModificationError`。
+4.  如果`configuration.certificates`已被设置，且其值与连接建立时使用的凭证列表不同，则抛出一个`InvalidModificationError`。
+5.  如果`configuration.bundlePolicy`已被设置，且其值与连接的捆绑策略不同，则抛出一个`InvalidModificationError`。
+6.  如果`configuration.rtcpMuxPolicy`已被设置，且其值与连接的rtcpMux策略不同，则抛出一个`InvalidModificationError`。如果策略为`negotiate`且用户代理没有实现非多路复用的RTCP，则抛出一个`NotSupportedError`。
+7.  如果`configuration.iceCandidatePoolSize`已被设置，其值与连接先前使用的对应值不同，且`setLocalDescription`方法已被调用了，则抛出一个`InvalidModificationError`。
+8.  将ICE代理的 **ICE传输设置** 值设为`configuration.iceTransportPolicy`。[JSEP 4.1.16](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.16)中定义，如果新的ICE传输设置改变了现有的设置，则在下一收集阶段之前都不会有新的操作执行。如果某段脚本希望立即被执行，则应该先重启ICE。
+9.  JSEP 3.5.4 & 4.1.1中定义，将ICE代理预先获取的ICE候选池大小设为`configuration.iceCandidatePoolSize`的值。如果新的ICE候选池大小改变了现有的设置，可能会导致为候选池立刻开始收集新的候选者，或忽略池中现有的候选者。
+10. 将 *validatedServers* 设为一个空列表。
+11. 如果`configuration.iceServers`已被定义，则对其的每个元素执行以下步骤：
+    1.  *server* 即当前列表中的元素。
+    2.  *urls*即`server.urls`。
+    3.  如果 *urls* 是一个字符串，则将 *urls* 设为由此字符串组成的列表。
+    4.  如果 *urls* 为空，抛出一个`SyntaxError`。
+    5.  对于 *urls* 中的每个 *url* ，执行以下步骤：
+        1.  利用[RFC3986](http://w3c.github.io/webrtc-pc/#bib-RFC3986)中定义的通用URI格式解析此url，并获得 *模式名* 。如果解析失败，则抛出`SyntaxError`。如果提取出的模式没有被浏览器实现，则抛出`NotSupportedError`。如果模式名为`turn`或`turns`，且用[RFC7064](http://w3c.github.io/webrtc-pc/#bib-RFC7064)定义的语法也无法解析url，则抛出`SyntaxError`。如果模式名为`stun`或`stuns`，且用[RFC7065](http://w3c.github.io/webrtc-pc/#bib-RFC7065)定义的语法也无法解析url，则抛出`SyntaxError`。
+        2.  若模式名为`turn`或`turns`，且`server.username`和`server.credential`都为空，则抛出`InvalidAccessError`。
+        3.  若模式名为`turn`或`turns`，且`server.credentialType`为`password`，`server.credential`不是一个DOMString，则抛出`InvalidAccessError`。
+        4.  如果模式名为`turn`或`turns`，且`server.credentialType`为`oauth`，`server.credential`不是一个`RTCOAuthCredential`对象，则抛出`InvalidAccessError`。
+    6. 将 *server* 追加到 *validatedServers* 。
+    
+    使 *validatedServers* 成为ICE代理的 **ICE服务器列表** 。
+    如[JSEP 4.1.16](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.16)定义的，如果一个新的服务器列表取代了当前ICE代理的服务器列表，下一收集阶段之前都不会有动作执行。如果某段脚本希望立即被执行，则应该先重启ICE。无论如何，如果ICE候选池的大小非零，所有现有的池内候选者都会被忽略，新的候选者会从新服务器中收集。
+12. 将当前配置保存至内部的[Configuration]槽。
+
