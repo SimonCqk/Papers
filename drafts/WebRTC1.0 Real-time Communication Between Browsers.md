@@ -678,3 +678,193 @@ promise *p* 中 **创建应答的最终步骤** 包含以下：
     4. 设 *offer* 为新创建的`RTCSessionDescriptionInit`字典，其`type`成员被初始化为`"answer"`字符串，`sdp`成员被初始化为 *sdpString* 。
     5. 将内部的[LastAnswer]槽设为 *sdpString* 。
     6. 用 *offer* 解析 *p* 。
+- **setLocalDescription**：`setLocalDescription`方法命令`RTCPeerConnection`将提供的`RTCSessionDescriptionInit`作为本地描述。<br>  这个API改变了本地媒体的状态。为了成功处理应用想要提供的从一种媒体格式更改为另一种不兼容格式的场景，`RTCPeerConnection`必须能够同时支持使用当前已有的和正在挂起的本地描述（例如支持存在于两种描述中的编解码器）直到收到最终的应答，此时，`RTCPeerConnection`可以完全采用挂起的本地描述，或者如果远程端拒绝更改，则回滚至当前描述。<br>  如[JSEP 5.4](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.4)中提到的，`createOffer`和`createAnswer`返回的SDP在传入`setLocalDescription`之前一定不能被更改。最终，当本方法被调用，用户代理必须按以下步骤运行：<br>
+    1. *description* 即`setLocalDescription`得第一个参数。
+    2. 如果`description.sdp`为空字符串且`description.type`为`answer`或`pranswer`，将 *connection* 得[LastAnswer]槽的值赋给`description.sdp`。
+    3. 如果`description.sdp`为空字符串且`description.type`为`offer`，将 *connection* 得[LastOffer]槽的值赋给`description.sdp`。
+    4. 将用`description`表示的[设置RTCSessionDescription](http://w3c.github.io/webrtc-pc/#set-description)的结果返回。
+**注意：如[JSEP 5.9](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.9)中提到的，调用此方法可能触发ICE代理收集ICE候选项。**
+- **setRemoteDescription**：`setRemoteDescription`方法命令`RTCPeerConnection`将提供的`RTCSessionDescriptionInit`作为远程邀请或应答。<br>  这个API改变了本地媒体的状态。<br>  当方法被调用，用户代理必须返回以方法的第一个参数表示的设置RTCSessionDescription的结果。<br>  除此之外，一个远程描述被用来确定并确认对等连接的身份。<br>  如果`a=identity`属性存在于会话描述中，浏览器会验证身份断言。<br>  如果`peerIdentity`配置被应用于`RTCPeerConnection`，将建立起所提供值的 **目标对等身份**。另外，如果`RTCPeerConnection`之前的身份已被认证（也就是`peerIdentity`的promise对象被解析），则同样会建立起[目标对等身份](http://w3c.github.io/webrtc-pc/#target-peer-identity)。<br>  目标对等身份一旦被设置就不能被改变。<br>  如果目标等对身份被设置，那么身份的合法性验证必须在`setRemoteDescription`返回的promise被解析前完成。如果身份合法性验证失败了，则拒绝`setRemoteDescription`返回的promise。<br>  若无目标对等身份，`setRemoteDescription`无需等待身份合法性验证的完成。
+- **addIceCandidate**：`addIceCandidate`方法向ICE代理提供了一个远程候选项。当以一个空字符串表示`candidate`成员调用本方法时，同样可用于表示远程候选项的终端。 本方法使用的参数仅包括`candidate, sdpMid, sdpMLineIndex和usernameFragment`，其余都被忽略。当方法被调用，用户代理必须按以下步骤运行：
+    1. *candidate* 即方法的参数。
+    2. *connection* 即调用此方法的`RTCPeerConnetion`对象。如果`sdp和sdpMLineIndex`都为`null`，用一个新创建的`TypeError`拒绝promise并返回。
+    3. 将包含以下步骤的任务加入 *connection* 的操作队列，并将结果返回：
+        1. 如果`remoteDescription`为`null`，用一个新创建的`InvalidStateError`拒绝promise并返回。
+        2. *p* 即新的promise。
+        3. 若 *candidate.sdpMid* 非空，运行以下步骤：
+            1. 如果 *candidate.sdpMid* 不等于任何媒体描述`remoteDescription`的mid值，用一个新创建的`OperationError`拒绝p并返回，中止这些步骤。
+        4. 否则，如果 *candidate.sdpMLineIndex* 非空，运行以下步骤：
+            1. 如果 *candidate.sdpMLineIndex* 大于等于`remoteDescription`中媒体描述的数量，用一个新创建的`OperationError`拒绝p并返回，中止这些步骤。
+        5. 若`candidate.usernameFragment`值不是`undefined`或`null`，且已应用的远程描述中相应媒体描述存在的任何用户名片段，用一个新创建的`OperationError`拒绝p并返回，中止这些步骤。
+        6. 并行地，按照[JSEP 4.1.17](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.17)，添加ICE候选项。用`candidate.usernameFragment`识别ICE生成过程；如果`usernameFragment`为空，将 *candidate* 用于最近一次ICE生成过程。如果`candidate.candidate`是空字符串，则将 *candidate* 作为相应媒体描述和ICE候选项生成过程地终止指示。
+            1. 若 *candidate* 没有被成功添加，用户代理必须将包含以下步骤地任务加入队列：
+                1. 如果 *connection* 的[IsClosed]槽为`true`，则终止步骤。
+                2. 用一个新创建的`OperationError`拒绝promise并返回。
+            2. 如果 *candidate* 被成功应用了，用户代理必须将包含以下步骤地任务加入队列：
+                1. 如果 *connection* 的[IsClosed]槽为`true`，则终止步骤。
+                2. 如果 *connection.[PendingRemoteDescription]* 非`null`，且代表了被处理的 *candidate* 的ICE生成过程，则将 *candidate* 加入到 *connection.[PendingRemoteDescription].sdp* 。
+                3. 如果 *connection.[CurrentRemoteDescription]* 非`null`，且代表了被处理的 *candidate* 的ICE生成过程，则将 *candidate* 加入到 *connection.[CurrentRemoteDescription].sdp* 。
+                4. 用`undefined`解析p。
+        7. 返回p。
+- **getDefaultIceServers**：返回配置入浏览器的ICE服务器列表。浏览器可被配置使用本地或私有的STUN/TURN服务器。本方法允许应用了解这些服务器并有选择地使用它们。<br>  这个列表可能是持久且跨源的。它同样增加了浏览器的指纹表面。在隐私敏感的上下文中，浏览器可以考虑暂缓，例如仅将此数据提供给列入白名单的数据源（或彻底不提供）（这是一个指纹向量）。<br>  **注意：由于此信息的使用由应用程序开发人员自行决定，因此使用这些默认值配置用户代理本身并不会增加用户限制其IP地址暴露的能力。**
+- **getConfiguration**：返回一个代表当前`RTCPeerConnection`配置的`RTCConfiguration`对象。<br>  当本方法被调用，用户代理必须必须返回存储在[Configuration]槽中的`RTCConfiguration`对象。
+- **setConfiguration**：`setConfiguration`方法会更新`RTCPeerConnection`对象的配置。包括改变ICE代理的配置。[JSEP  3.5.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-3.5.1)提到，当ICE配置以某种需要新的收集阶段的方式改变时，ICE应该重启。<br>  当`setConfiguration`被调用，用户代理必须按以下步骤运行：<br>
+    1. *connection* 即调用此方法的`RTCPeerConnection`对象。
+    2. 如果 *connection* 的[IsClosed]槽值为`true`，抛出一个`InvalidStateError`。
+    3. 将配置设为指定的 *configuration* 。
+- **close**：当`close`方法被调用，用户代理必须按以下步骤运行：
+    1. *connection* 即调用此方法的`RTCPeerConnection`对象。
+    2. 如果 *connection* 的[IsClosed]槽值为`true`，终止步骤。
+    3. 将 *connection* 的[IsClosed]槽设为`true`。
+    4. 将 *connection* 的信令状态设为`closed`。
+    5. 设 *transceivers* 为[收集收发器](http://w3c.github.io/webrtc-pc/#dfn-collecttransceivers)算法的执行结果。对于 *transceivers* 中的每个`RTCRtpTransceiver`对象，执行以下：
+        1. 如果 *transceiver* 的[Stopped]槽值为`true`，终止步骤。
+        2. 设 *sender* 为 *transceiver* 的[Sender]槽内容。
+        3. 设 *receiver* 为 *transceiver*  的[Receiver]槽内容。
+        4. 停止 *sender* 发送媒体数据。
+        5. 根据[RFC3550](http://w3c.github.io/webrtc-pc/#bib-RFC3550)定义， *sender* 向每个RTP流发送RTCP BYE信号。
+        6. 停止 *receiver* 接收媒体数据。
+        7. 将 *receiver* 的[ReceiverTrack]的 `readyState`为`ended`。
+        8. 设 *transceiver * 的[Stopped]槽为`true`。
+    6. 将每个连接的`RTCDataChannel`对象的[ReadyState]槽值设为`closed`。<br>  **注意：`RTCDataChannel`将被突然关闭，关闭程序不会被调用**
+    7. 如果 *connection* 的[SctpTransport]槽非`null`，通过发送一个SCTP ABORT数据块且设[SctpTransportState]槽为`closed`来与底层的SCTP解除关联。
+    8. 将 *connection* 的每个`RTCDtlsTransport`对象的[DtlsTransportState]设为`closed`。
+    9. 销毁 *connection* 的ICE代理，结束所有活跃的ICE过程，释放所有相关资源（例如TRUN权限）。
+    10. 将 *connection* 的每个`RTCIceTransport`对象的[IceTransportState]设为`closed`。
+    11. 设 *connection* 的ICE连接状态为`closed`。
+    12. 设 *connection* 的连接状态为`closed`。
+
+#### 4.4.3 旧版接口扩展
+
+> 注意：出于可读性考虑，本节已被拆解。 将部分接口视为其主要对应部分的一部分，因为它们会重载现有的方法。
+
+是否支持本节中的方法是可选的。但如果决定支持这些方法，则必须根据此处指定的方法实现。
+
+> 注意：`RTCPeerConnection`中的`addStream`方法可以很容易被填充为：
+> ```js
+> RTCPeerConnection.prototype.addStream = function(stream) {
+>   stream.getTracks().forEach((track) => this.addTrack(track, stream));
+>   };
+> ```
+
+#### *方法扩展*
+
+```webidl
+partial interface RTCPeerConnection {
+  Promise<void> createOffer(RTCSessionDescriptionCallback successCallback,
+  RTCPeerConnectionErrorCallback failureCallback,
+  optional RTCOfferOptions options);
+  Promise<void> setLocalDescription(RTCSessionDescriptionInit description,
+  VoidFunction successCallback,
+  RTCPeerConnectionErrorCallback failureCallback);
+  Promise<void> createAnswer(RTCSessionDescriptionCallback successCallback,
+  RTCPeerConnectionErrorCallback failureCallback);
+  Promise<void> setRemoteDescription(RTCSessionDescriptionInit description,
+  VoidFunction successCallback,
+  RTCPeerConnectionErrorCallback failureCallback);
+  Promise<void> addIceCandidate(RTCIceCandidateInit candidate,
+  VoidFunction successCallback,
+  RTCPeerConnectionErrorCallback failureCallback);
+};
+```
+
+方法：
+
+- **createOffer**：当`createOffer`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *successCallback* 为方法的第一个参数。
+    2. 设 *failureCallback* 为方法的第二个参数，表示一个回调。
+    3. 设 *options* 为方法的第三个参数，表示一个回调。
+    4. 将 *options* 作为单独的参数，执行`RTCPeerConnection`的`createOffer()`中指定的步骤，设 *p* 为返回的promise。
+    5. 完成后p含有值 *offer* ，将 *offer* 作为参数调用 *successCallback* 。
+    6. 被拒绝的话p会附带原因 *r* ，将 *r* 作为参数调用 *failureCallback* 。
+    7. 用`undefine`解析一个promise并返回。
+- **setLocalDescription**：当`setLocalDescription`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *description* 为方法的第一个参数。
+    2. 设 *successCallback* 为方法的第二个参数。
+    3. 设 *failureCallback* 为方法的第三个参数，表示一个回调。
+    4. 将 *description* 作为单独的参数，执行`RTCPeerConnection`的`setLocalDescription()`中指定的步骤，设 *p* 为返回的promise。
+    5. p完成后，将`undefined`作为参数调用 *successCallback* 。
+    6. 被拒绝的话p会附带原因 *r* ，将 *r* 作为参数调用 *failureCallback* 。
+    7. 用`undefine`解析一个promise并返回。
+- **createAnswer**：**注意：旧版的`createAnswer`不接受`RTCAnswerOptions`作为参数，因为没有任何旧版的`createAnswer`实现支持。** 当`createAnswer`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *successCallback* 为方法的第一个参数。
+    2. 设 *failureCallback* 为方法的第二个参数，表示一个回调。
+    3. 不传入任何参数，执行`RTCPeerConnection`的`createAnswer()`中指定的步骤，设 *p* 为返回的promise。
+    4. 完成后p含有值 *answer*，将`answer`作为参数调用 *successCallback* 。
+    5. 被拒绝的话p会附带原因 *r* ，将 *r* 作为参数调用 *failureCallback* 。
+    6. 用`undefine`解析一个promise并返回。
+- **setRemoteDescription**：当`setRemoteDescription`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *description* 为方法的第一个参数。
+    2. 设 *successCallback* 为方法的第二个参数，表示一个回调。
+    3. 设 *failureCallback* 为方法的第三个参数，表示一个回调。
+    4. 将 *description* 作为单独的参数，执行`RTCPeerConnection`的`setRemoteDescription()`中指定的步骤，设 *p* 为返回的promise。
+    5. p完成后，将`undefined`作为参数调用 *successCallback* 。
+    6. 被拒绝的话p会附带原因 *r* ，将 *r* 作为参数调用 *failureCallback* 。
+    7. 用`undefine`解析一个promise并返回。
+- **addIceCandidate**：当`addIceCandidate`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *candidate* 为方法的第一个参数。
+    2. 设 *successCallback* 为方法的第二个参数，表示一个回调。
+    3. 设 *failureCallback* 为方法的第三个参数，表示一个回调。
+    4. 将 *candidate* 作为单独的参数，执行`RTCPeerConnection`的`addIceCandidate()`中指定的步骤，设 *p* 为返回的promise。
+    5. p完成后，将`undefined`作为参数调用 *successCallback* 。
+    6. 被拒绝的话p会附带原因 *r* ，将 *r* 作为参数调用 *failureCallback* 。
+    7. 用`undefine`解析一个promise并返回。
+   
+*回调定义*
+
+这些回调只被用于旧版API中。
+
+`RTCPeerConnectionErrorCallback`：
+
+```webidl
+callback RTCPeerConnectionErrorCallback = void (DOMException error);
+```
+
+`RTCPeerConnectionErrorCallback`回调参数：
+DOMException类型的`error`：封装了出错信息的错误对象。
+
+`RTCSessionDescriptionCallback`：
+
+```webidl
+callback RTCSessionDescriptionCallback = void (RTCSessionDescriptionInit description);
+```
+
+`RTCSessionDescriptionCallback`回调参数：
+RTCSessionDescriptionInit类型的`description`：一个包含SDP的对象。
+
+#### *旧版配置扩展*
+
+除了被添加至`RTCPeerConnection`的媒体数据外，本节描述了一些可能会被用于影响邀请创建行为的旧版扩展。我们鼓励开发者使用`RTCRtpTransceiver`的API。
+当`createOffer`被任何本节中指定的旧版选项调用时，执行以下步骤而不是常规的`createOffer`步骤：
+
+1. 设 *options* 为方法的第一个参数。
+2. 设 *connection* 为当前的`RTCPeerConnection`对象。
+3. 对于 *options* 中的每个"offerToReceive<Kind>"成员，以及它的类别 *kind* ，执行以下步骤：
+    1. 如果字典成员的值为false：
+        1. 对于每个未停止的"sendrecv"类别的收发器 *transceiver* ，设 *transceiver* 的[Direction]槽为"sendonly"。
+        2. 对于每个未停止的"recvonly"类别的收发器 *transceiver* ，设 *transceiver* 的[Direction]槽为"inactive"。
+        如果有下一选项，继续此步骤。
+    2. 如果 *connection* 有任何为停止的"sendrecv"或"recvonly"类别的收发器 *transceiver* ，继续下一个选项。
+    3. 设  *transceiver* 为调用`connection.addTransceiver(kind)`的结果，这个操作绝不能更改[谈判所必须的标记位](http://w3c.github.io/webrtc-pc/#dfn-update-the-negotiation-needed-flag)。
+    4. 如果因为前面的步骤抛出了错误，使得 *transceiver* 未被设置，则终止步骤。
+    5. 设 *transceiver* 的[Direction]槽为"recvonly"。
+4. 运行`createOffer`中指定的步骤来创建邀请。
+
+```webidl
+partial dictionary RTCOfferOptions {
+  boolean offerToReceiveAudio;
+  boolean offerToReceiveVideo;
+};
+```
+
+*属性*
+
+- boolean类型的`offerToReceiveAudio`：此设置提供对音频方向的额外控制。 例如，无论是否发送音频，它都可用于确保可以接收音频。
+- boolean类型的`offerToReceiveVideo`：此设置提供对视频方向的额外控制。 例如，无论是否发送视频，它都可用于确保可以接收视频。
+
+#### 4.4.4 垃圾回收
+
+只要有任何可能在对象上触发事件处理器的事件存在，`RTCPeerConnection`对象就不能被垃圾回收。当对象内部的[IsClosed]槽值为`true`，就没有事件处理器可以被触发了，因此可以安全地执行垃圾回收。
+所有`RTCDataChannel`和`MediaStreamTrack`都是以强引用地形式连接到`RTCPeerConnection`对象上的。
+
+### 4.5 错误处理
