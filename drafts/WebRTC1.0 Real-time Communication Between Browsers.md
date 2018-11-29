@@ -456,20 +456,20 @@ enum RTCIceConnectionState {
         1. 如果 *connection* 的[IsClosed]槽值为`true`，则终止以下步骤。
         2. 如果 *description* 被设为本地描述，则运行以下步骤中的某一个：
             - 如果 *description* 的类型为`"offer"`，设置连接的[PendingLocalDescription]槽为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-local-offer"`。
-            - 如果 *description* 的类型为`"answer"`， 则它完成了一次提供或应答的谈判。将 *connection* 的[CurrentLocalDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentRemoteDescription]设置为[PendingRemoteDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *connection* 的信令状态设为`"stable"`。
+            - 如果 *description* 的类型为`"answer"`， 则它完成了一次提供或应答的协商。将 *connection* 的[CurrentLocalDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentRemoteDescription]设置为[PendingRemoteDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *connection* 的信令状态设为`"stable"`。
             - 如果 *description* 类型为`"rollback"`，则这是一个回滚操作。将 *connection* 的[PendingLocalDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
             - 如果 *description* 类型为`"pranswer"`，则把 *connection* 的[PendingLocalDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-local-pranswer"`。
         3. 否则，如果 *description* 被设为远程描述，则运行以下步骤中的某一个：
             - 如果 *description* 类型为`"rollback"`且信令状态为`"stable"`，则拒绝此`promise`并创建一个新的`InvalidStateError`错误然后终止步骤。
             - 如果 *description* 的类型为`"offer"`，设置连接的[PendingRemoteDescription]槽为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设置为`"have-remote-offer"`。
-            - 如果 *description* 的类型为`"answer"`，则它完成了一次提供或应答的谈判。将 *connection* 的[CurrentRemoteDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentLocalDescription]设置为[PendingLocalDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *connection* 的信令状态设为`"stable"`。
+            - 如果 *description* 的类型为`"answer"`，则它完成了一次提供或应答的协商。将 *connection* 的[CurrentRemoteDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把[CurrentLocalDescription]设置为[PendingLocalDescription]。把[PendingRemoteDescription]和[PendingLocalDescription]都设为`null`。最后将 *connection* 的信令状态设为`"stable"`。
             - 如果 *description* 类型为`"rollback"`，则这是一个回滚操作。将 *connection* 的[PendingRemoteDescription]槽设为`"null"`，并把信令状态设为`"stable"`。
             - 如果 *description* 类型为`"pranswer"`，则把 *connection* 的[PendingRemoteDescription]槽设置为一个以 *description* 为依据构造的新`RTCSessionDescription`对象，并把信令状态设为`"have-remote-pranswer"`。
         4. 如果 *description* 类型为`"answer"`，启动一个与现有SCTP关联的闭包，如[SCTP-SDP](http://w3c.github.io/webrtc-pc/#bib-SCTP-SDP)的10.3节和10.4节中所定义，并把 *connection* 的[SctpTransport]槽值设为`null`。
         5. 如果 *description* 类型为`"answer"`或`"pranswer"`，则运行以下步骤：
             1. 如果 *description* 发起与一个新的SCTP建立关联，如[SCTP-SDP](http://w3c.github.io/webrtc-pc/#bib-SCTP-SDP)的10.3节和10.4节中所定义，则以`"connecting"`为初始状态，创建一个新的`RTCSctpTransport`实例，并赋给[SctpTransport]槽。
             2. 否则，如果SCTP关联已创建完毕，而SDP属性的"max-message-size"也被更新了，则对 *connection* 的[SctpTransport]槽的最大消息长度的数据进行更新。
-            3. 如果 *description* 对SCTP传输中的DTLS角色进行了谈判，且存在一个`id`为`null`的`RTCDataChannel`，则根据[RTCWEB-DATA-PROTOCAL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)生成一个ID。如果没有可用的ID，则运行以下步骤：
+            3. 如果 *description* 对SCTP传输中的DTLS角色进行了协商，且存在一个`id`为`null`的`RTCDataChannel`，则根据[RTCWEB-DATA-PROTOCAL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)生成一个ID。如果没有可用的ID，则运行以下步骤：
                 1. *channel* 即当前无可用ID的`RTCDataChannel`对象。
                 2. 将 *channel* 的[ReadyState]槽值设为`"closed"`。
                 3. 在当前 *channel* 使用`RTCErrorEvent`接口触发名为`"error"`，且`errorDetail`属性被设为"data-channel-failure"的事件。
@@ -529,7 +529,7 @@ enum RTCIceConnectionState {
             12. 对 *removeList* 中的每个媒体流（stream）和媒体轨（track），从媒体流中移除媒体轨。
             13. 对 *addList* 中的每个媒体流（stream）和媒体轨（track），将媒体轨添加至媒体流。
             14. 对于 *trackEventInits* 中的每个入口entry，使用`RTCTrackEvent`接口触发名为`track`的事件，其`receiver`属性初始化为`entry.receiver`，`track`属性初始化为`entry.track`，`streams`属性初始化为`entry.streams`，`transceiver`属性初始化为`entry.transceiver`。
-            15. 如果当前 *connection* 的信令状态为`stable`，则更新谈判所需的标志位。如果更新前后 *connection* 的[NegotiationNeeded]槽值一直为`true`，则将包含以下步骤的任务加入队列：
+            15. 如果当前 *connection* 的信令状态为`stable`，则更新是否需要协商的标志位。如果更新前后 *connection* 的[NegotiationNeeded]槽值一直为`true`，则将包含以下步骤的任务加入队列：
                 1.  若 *connection* 的[IsClosed]槽值为`true`，则终止后续步骤。
                 2.  若 *connection* 的[NegotiationNeeded]槽值为`false`，则终止后续步骤。
                 3.  触发名为`negotiationneeded`事件。
@@ -604,11 +604,11 @@ interface RTCPeerConnection : EventTarget {
 };
 ```
 
-构造器：
+**构造器：**
 
 - **RTCPeerConnection** ：参阅[RTCPeerConnection构造算法](https://www.w3.org/TR/webrtc/#dom-peerconnection)。
 
-属性：
+**属性：**
 
 - RTCSessionDescription类型的`localDescription`，只读，可空：如果[PendingLocalDescription]槽非空，则`localDescription`属性必须返回它，否则返回[CurrentLocalDescription]。<br>  注意，[CurrentLocalDescription].sdp和[PendingLocalDescription].sdp与传入`setLocalDescription`的SDP值不必是字符串值相等的（例如，SDP可能被解析后又格式化了，或ICE候选项有新增）。
 - RTCSessionDescription类型的`currentLocalDescription`，只读，可空：`currentLocalDescription`属性必须返回[CurrentLocalDescription]槽的内容。<br>  它代表了上次`RTCPeerConnection`转化为稳定状态时成功协商好的本地描述，以及创建邀请/应答以来ICE代理生成的所有本地候选项。
@@ -629,9 +629,9 @@ interface RTCPeerConnection : EventTarget {
 - EventHnadler类型的`onicegatheringstatechange`：此事件处理器的事件类型为`icegatheringstatechange`。
 - EventHnadler类型的`onconnectionstatechange`：此事件处理器的事件类型为`connectionstatechange`。
 
-方法：
+**方法：**
 
-- **createOffer** ：`createOffer`方法生成一个包含符合[RFC 3264]邀请规范的SDP blob对象，附带会话支持的配置，包括附加到本`RTCPeerConnection`的本地`MediaStreamTrack`对象的描述，本实现支持的编解码器/RTP/RTCP功能，ICE代理的参数以及DTLS连接。`options`参数也许会用于在邀请生成后施加额外的控制。<br> 如果系统对资源作了限制（例如有限个数的解码器），`createOffer`需要返回反映当前系统状态的一个邀请，这样当它尝试获取对应资源的时候`setLocalDescription`方法可以调用成功。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  为了生成[JSEP]中定义的邀请，创建SDP必须遵循一套合适的流程。对于一个邀请，生成的SDP包含会话支持的编解码器/RTP/RTCP全套功能（对应的应答只包含一个特定的子集）。在会话建立后的`createOffer`调用事件中，`createOffer`将生成一个兼容当前会话的邀请，包含自上次完整的邀约-答复以来对会话所做的所有更改，例如媒体轨的增加或删除。如果没有更改发生，邀请将包含当前本地描述的功能以及未来可以通过谈判达成的附加功能。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选项。<br> `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的凭证。这些凭证和其他默认凭证一起生成凭证指纹集合。这些凭证指纹将被用于SDP的构造以及请求身份断言时的输入。<br>  如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份断言，则会话描述 *SHALL* 将包含一个合适的断言。<br>  SDP的创建过程暴露了底层系统的一部分媒体功能，它在设备上能提供持久的跨源信息。因此，它增加了应用的指纹表面。在隐私敏感的上下文中，浏览器可以考虑放缓，例如仅生成与SDP匹配的公共功能子集。（这是指纹向量）。<br>  当此方法被调用，用户代理必须运行以下步骤：<br>
+- **createOffer** ：`createOffer`方法生成一个包含符合[RFC 3264]邀请规范的SDP blob对象，附带会话支持的配置，包括附加到本`RTCPeerConnection`的本地`MediaStreamTrack`对象的描述，本实现支持的编解码器/RTP/RTCP功能，ICE代理的参数以及DTLS连接。`options`参数也许会用于在邀请生成后施加额外的控制。<br> 如果系统对资源作了限制（例如有限个数的解码器），`createOffer`需要返回反映当前系统状态的一个邀请，这样当它尝试获取对应资源的时候`setLocalDescription`方法可以调用成功。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  为了生成[JSEP]中定义的邀请，创建SDP必须遵循一套合适的流程。对于一个邀请，生成的SDP包含会话支持的编解码器/RTP/RTCP全套功能（对应的应答只包含一个特定的子集）。在会话建立后的`createOffer`调用事件中，`createOffer`将生成一个兼容当前会话的邀请，包含自上次完整的邀约-答复以来对会话所做的所有更改，例如媒体轨的增加或删除。如果没有更改发生，邀请将包含当前本地描述的功能以及未来可以通过协商达成的附加功能。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选项。<br> `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的凭证。这些凭证和其他默认凭证一起生成凭证指纹集合。这些凭证指纹将被用于SDP的构造以及请求身份断言时的输入。<br>  如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份断言，则会话描述 *SHALL* 将包含一个合适的断言。<br>  SDP的创建过程暴露了底层系统的一部分媒体功能，它在设备上能提供持久的跨源信息。因此，它增加了应用的指纹表面。在隐私敏感的上下文中，浏览器可以考虑放缓，例如仅生成与SDP匹配的公共功能子集。（这是指纹向量）。<br>  当此方法被调用，用户代理必须运行以下步骤：<br>
     1. *connection* 即调用此方法的`RTCPeerConnection`对象。
     2. 如果 *connection* 的[IsClosed]槽为`true`，则返回一个用新创建的`InvalidStateErrror`拒绝的`promise`对象。
     3. 如果 *connection* 配置了身份提供方，且连接没有正式建立，则开启身份断言请求。
@@ -768,7 +768,7 @@ partial interface RTCPeerConnection {
 };
 ```
 
-方法：
+**方法：**
 
 - **createOffer**：当`createOffer`方法被调用，用户代理必须按以下步骤运行：
     1. 设 *successCallback* 为方法的第一个参数。
@@ -810,7 +810,7 @@ partial interface RTCPeerConnection {
     6. 被拒绝的话p会附带原因 *r* ，将 *r* 作为参数调用 *failureCallback* 。
     7. 用`undefine`解析一个promise并返回。
    
-*回调定义*
+**回调定义**
 
 这些回调只被用于旧版API中。
 
@@ -845,7 +845,7 @@ RTCSessionDescriptionInit类型的`description`：一个包含SDP的对象。
         2. 对于每个未停止的"recvonly"类别的收发器 *transceiver* ，设 *transceiver* 的[Direction]槽为"inactive"。
         如果有下一选项，继续此步骤。
     2. 如果 *connection* 有任何为停止的"sendrecv"或"recvonly"类别的收发器 *transceiver* ，继续下一个选项。
-    3. 设  *transceiver* 为调用`connection.addTransceiver(kind)`的结果，这个操作绝不能更改[谈判所必须的标记位](http://w3c.github.io/webrtc-pc/#dfn-update-the-negotiation-needed-flag)。
+    3. 设  *transceiver* 为调用`connection.addTransceiver(kind)`的结果，这个操作绝不能更改[协商所必须的标记位](http://w3c.github.io/webrtc-pc/#dfn-update-the-negotiation-needed-flag)。
     4. 如果因为前面的步骤抛出了错误，使得 *transceiver* 未被设置，则终止步骤。
     5. 设 *transceiver* 的[Direction]槽为"recvonly"。
 4. 运行`createOffer`中指定的步骤来创建邀请。
@@ -857,7 +857,7 @@ partial dictionary RTCOfferOptions {
 };
 ```
 
-*属性*
+**属性**
 
 - boolean类型的`offerToReceiveAudio`：此设置提供对音频方向的额外控制。 例如，无论是否发送音频，它都可用于确保可以接收音频。
 - boolean类型的`offerToReceiveVideo`：此设置提供对视频方向的额外控制。 例如，无论是否发送视频，它都可用于确保可以接收视频。
@@ -868,3 +868,178 @@ partial dictionary RTCOfferOptions {
 所有`RTCDataChannel`和`MediaStreamTrack`都是以强引用地形式连接到`RTCPeerConnection`对象上的。
 
 ### 4.5 错误处理
+
+#### 4.5.1 通用原则
+
+所有返回promise的方法都由promise的标准错误处理规则接管。不返回promise的方法可能会抛出异常来表示错误。
+
+### 4.6 会话描述模型
+
+#### 4.6.1 RTCSdpType
+
+RTCSdpType枚举描述了`RTCSessionDescriptionInit`或`RTCSessionDescription`实例的类型。
+
+```webidl
+enum RTCSdpType {
+  "offer",
+  "pranswer",
+  "answer",
+  "rollback"
+};
+```
+
+枚举值描述：
+
+- offer：`RTCSdpType`类型的`offer`表示该描述必须被视作一个SDP邀请。
+- pranswer：`RTCSdpType`类型的`pranswer`表示该描述必须被视作一个SDP应答，但不是一个最终应答。一个SDP `pranswer`的描述可以应用作为SDP邀请的响应，或作为先前发送的SDP `pranswer`的更新。
+- answer：`RTCSdpType`类型的`answer`表示该描述必须被视作一个SDP最终应答，并且邀请-应答的交换过程被视作已结束了。一个SDP `answer`的描述可以应用作为SDP邀请的响应，或作为先前发送的SDP `pranswer`的更新。
+- rollback：`RTCSdpType`类型的`rollback`表示该描述必须被视作取消当前SDP协商，移动SDP邀请并回复先前稳定的状态。注意如果当前还没有达成邀请-应答的协商，则先前稳定状态中的本地或远程SDP描述可能是空的。
+
+#### 4.6.2 RTCSessionDescription类
+
+`RTCSessionDescription`类被`RTCPeerConnection`用于暴露本地或远程会话描述。
+
+```webidl
+[Constructor(RTCSessionDescriptionInit descriptionInitDict),
+  Exposed=Window]
+interface RTCSessionDescription {
+  readonly attribute RTCSdpType type;
+  readonly attribute DOMString sdp;
+  [Default] object toJSON();
+};
+```
+
+**构造器：**
+
+- **RTCSessionDescription** ：`RTCSessionDescription()`构造器接收一个字典参数， *descriptionInitDict* ，其内容被用来初始化一个新`RTCSessionDescription`对象。本构造器已被弃用，它的存在只是出于后向兼容性的考虑。
+
+**属性：**
+
+- RTCSdpType类型的`type`，只读：本`RTCSessionDescription`的类型。
+- DOMString类型的`sdp`，只读：代表SDP的字符串。
+
+**方法：**
+
+- *toJSON()* ：被调用时执行[WEBIDL的默认toJSON操作](https://heycam.github.io/webidl/#default-tojson-operation)。
+
+```webidl
+dictionary RTCSessionDescriptionInit {
+    required RTCSdpType type;
+             DOMString  sdp = "";
+};
+```
+
+`RTCSessionDescriptionInit`字典成员：
+
+- RTCSdpType类型的`type`，必须项：DOMString sdp
+- DOMString类型的`sdp`：代表SDP的字符串。如果`type`为`rollback`，则不会使用此成员。
+
+### 4.7 会话协商模型
+
+为了达到预期效果，`RTCPeerConnection`的很多状态改变都需要通过信令通道与远程端通信。应用通过监听`negotiationneeded`事件，可以在需要进行信号传递的时候一直收到通知。根据表示在[NegotiationNeeded]槽内的连接 **negotiation-needed** 标记位的状态，事件被触发。
+
+#### 4.7.1 设置是否需要协商标记位
+
+如果在`RTCPeerConnection`上执行的操作需要信令，则该连接将被标记为需要协商。此类操作包括添加或停止`RTCRtpTransceiver`，或添加第一个`RTCDataChannel`。
+具体实现内部的变化也可能导致连接被标记为需要协商。
+注意，具体的更新协商标记位的程序在下方指定。
+
+#### 4.7.2 清除是否需要协商标记位
+
+当`RTCSessionDescription`的应用类型为`"answer"`时，清除是否需要协商的标志，并且提供的描述与`RTCPeerConnection`上当前存在的`RTCRtpTransceivers`和`RTCDataChannel`的状态相匹配。 具体而言，这意味着所有未停止的收发器在本地描述中具有匹配属性的相关部分，并且如果已经创建了任何数据信道，则本地描述中存在数据部分。
+注意，更新是否需要协商标记位的程序在下方指定。
+
+#### 4.7.3 更新是否需要协商标记位
+
+以下过程在本文档的其他地方被引用。 它也可能随着实现中影响协商的内部变化而发生。如果发生此类更改，用户代理必须将更新需要协商标记位的任务加入队列。
+为了 **更新是否需要协商的标记位** ，运行以下步骤：
+
+1. 如果 *connection* 的[IsClosed]槽为`true`，终止后续步骤。
+2. 如果 *connection* 的信令状态不是`stable`，终止后续步骤。 **注意：作为设置RTCSessionDescription步骤的一部分，一旦状态转移为"stable"，是否需要协商的标记位就会被更新**
+3. 如果检查是否需要协商的结果为`false`，通过设 *connection* 的[NegotiationNeeded]槽为`false`将是否需要协商标记位清除，并终止后续步骤。
+4. 如果 *connection* 的[NegotiationNeeded]槽已为`true`，终止后续步骤。
+5. 将 *connection* 的[NegotiationNeeded]槽设为`true`。
+6. 将包含以下步骤的任务加入队列：
+    1. 如果 *connection* 的[IsClosed]槽为`true`，终止后续步骤。
+    2. 如果 *connection* 的[NegotiationNeeded]槽为`false`，终止后续步骤。
+    3. 在 *connection* 上触发名为`negotiationneeded`的事件。 **注意：将`negotiationneeded`事件入队防止了过早触发，在普通的场景中多个修改会一次发生。**
+
+为了检查 *connection* 是否需要协商，执行以下检查：
+
+1. 如果需要实现指定的协商，如本节刚开始中提到的，则返回`true`。
+2. *description* 即 *connection.[CurrentLocalDescription]* 。
+3. 如果 *connection* 创建了`RTCDataChannel`对象，且 *description* 中的m=字段没有协商获取数据，则返回`true`。
+4. 对于 *connection* 中的每个收发器 *transceiver* ，执行以下检查：
+    1. 如果 *transceiver* 没有`stopped`，且没有与 *description* 中的m=字段相关联，则返回`true`。
+    2. 如果 *transceiver* 没有`stopped`，且已与 *description* 中的m=字段相关联，则执行一下检查：
+        1. 如果 *transceiver.[Direction]* 为`sendrecv`或`sendonly`，且相关联的m=字段不包含单独的一行"a=msid"，或"a=msid"中包含MSIDs的数量，或包含MSID值本身，但MSID值与 *tranceiver.sender.[AssociatedMediaStreamIds]* 不同，则返回`true`。
+        2. 如果 *description* 的类型为`offer`，且 *coonnection.[CurrentLocalDescription]* 或 *connection.[CurrentRemoteDescription]* 中关联的m=字段中的方向与 *tranceiver.[Direction]* 都不匹配，则返回`true`。
+        3. 如果 *description* 的类型为`answer`，且 *description* 的m=字段中的方向与给定方向相交的 *tranceiver.[Direction]* 不匹配，（这在[JSEP 5.3.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.3.1)有定义），则返回`true`。
+    3. 如果 *transceiver* 已`stopped`，且与m=字段相关联，但m=字段还没被 *connection.[CurrentLocalDescription]* 或 *connection.[CurrentRemoteDescription]* 拒绝，则返回`true`。
+
+### 4.8 连接建立接口
+
+#### 4.8.1 `RTCIceCandidate`接口
+
+该接口描述了ICE候选项，在[ICE第二节](http://w3c.github.io/webrtc-pc/#bib-ICE)中描述。除了`candidate, sdpMid, sdpMLineIndex, usernameFragment`，其余的属性都从 *candidateInitDict* 的`candidate`成员中派生，前提是它们格式完好。
+
+```webidl
+[Constructor(optional RTCIceCandidateInit candidateInitDict),
+  Exposed=Window]
+interface RTCIceCandidate {
+  readonly attribute DOMString candidate;
+  readonly attribute DOMString? sdpMid;
+  readonly attribute unsigned short? sdpMLineIndex;
+  readonly attribute DOMString? foundation;
+  readonly attribute RTCIceComponent? component;
+  readonly attribute unsigned long? priority;
+  readonly attribute DOMString? address;
+  readonly attribute RTCIceProtocol? protocol;
+  readonly attribute unsigned short? port;
+  readonly attribute RTCIceCandidateType? type;
+  readonly attribute RTCIceTcpCandidateType? tcpType;
+  readonly attribute DOMString? relatedAddress;
+  readonly attribute unsigned short? relatedPort;
+  readonly attribute DOMString? usernameFragment;
+  RTCIceCandidateInit toJSON();
+};
+```
+
+**构造器：**
+
+- **RTCIceCandidate** ：`RTCIceCandidate()`构造器接收一个字典参数， *candidateInitDict* ，其内容被用来初始化新`RTCIceCandidate`对象。<br>  当它被调用时，运行以下步骤：
+    1. 如果 *candidateInitDict* 中的`sdpMid`和`sdpMLineIndex`字典成员都为`null`，抛出一个`TypeError`错误。
+    2. 设 *iceCandidate* 即新创建的`RTCIceCandidate`对象。
+    3. 将 *iceCandidate* 的以下属性置为`null`：` foundation, component, priority, address, protocol, port, type, tcpType, relatedAddress, relatedPort`。
+    4. 将 *iceCandidate* 的以下属性设备 *candidateInitDict* 中的对应值：`candidate, sdpMid, sdpMLineIndex, usernameFragment`。
+    5. 设 *candidate* 为 *candidateInitDict* 中的`candidate`成员。如果 *candidate* 不是一个空字符串，则运行以下步骤：
+        1. 使用`candidate-attribute`语法解析 *candidate* 。
+        2. 如果上一步解析失败，终止步骤。
+        3. 如果解析结果中的任何字段表示 *iceCandidate* 中相应属性的非法值，则中止这些步骤。
+        4. 将 *iceCandidate* 中的相应属性设置为解析结果的字段值。
+    6. 返回 *iceCandidate* 。
+
+> 注意：`RTCIceCandidate`的构造函数仅对`candidateInitDict`中的字典成员进行基本的解析和类型检查。在将`RTCIceCandidate`对象传递给`addIceCandidate()`时，会完成对`candidate，sdpMid，sdpMLineIndex，usernameFragment`以及相应会话描述的格式完整性的详细验证。
+> 为了保持向后兼容性，解析候选属性时发生的任何错误都将被忽略。 在这种情况下，`candidate`属性保存在`candidateInitDict`给定的原始`candidate`字符串中，但是诸如`foundation, priority`等派生的属性被设为`null`。
+
+**属性:**
+以下大多数属性都被定义在[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)的15.1中。
+
+- DOMString类型的`candidate`，只读：它携带了[ICE]第15.1中定义的`candidate-attribute`。如果这个`RTCIceCandidate`代表了候选项结束的指示，`candidate`是一个空字符串。
+- DOMString类型的`sdpMid`，只读，可空：如果不为`null`，它将包含[RFC5888](http://w3c.github.io/webrtc-pc/#bib-RFC5888)中定义的该候选项关联的媒体组件中的媒体流"识别标签"。
+- unsigned short类型的`sdpMLineIndex`，只读，可空：如果不为`null`，它表示该候选项关联的SDP中媒体描述的索引值（从0开始）。
+- DOMString类型的`foundation`，只读，可空：允许ICE关联出现在多个`RTCIceTransport`上候选项的唯一标识符。
+- RTCIceComponent类型的`component`，只读，可空：赋予候选项的网络组件(`rtp`或`rtcp`)。这对应于`candidate-attribute`中的`component-id`字段，解码为`RTCIceComponent`中定义的字符串表示。
+- unsigned long类型的`priority`，只读，可空：赋予候选项的优先级。
+- DOMString类型的`address`，只读，可空：候选项的地址，可以是IPv4，IPv6，或全限定域名（FQDN）。它对应于`candidate-attribute`中的`connection-address`字段。<br>  注意：候选者中公开的地址通过ICE收集并对`RTCIceCandidate`实例中的应用程序可见，这可以揭示有关设备和用户的更多信息（例如位置，本地网络拓扑），而不是用户在未启用WebRTC的浏览器中期望信息。<br>  这些地址会一直对应用公开，并可能对沟通方公开，也可能未经用户同意就公开（例如，对于在数据通道中使用的或只接收媒体的对等连接）。<br>  这些地址也可被用于暂时或持久的跨源状态，因此对设备的指纹表面有利。（这是一个指纹向量。）<br>  通过设置`RTCConfiguration`的`iceTransportPolicy`成员强制ICE代理只报告中继候选项，应用可暂时或永久地避免将地址暴露给沟通方。<br>  为了限制暴露给应用本身的地址，浏览器可以向它们的用户提供不同的策略而不是共享本地地址，这定义在[RTCWEB-IP-HANDLING](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-IP-HANDLING)。
+- RTCIceProtocal类型的`protocal`，只读，可空：候选项的协议(`udp`或`tcp`)。对应于`candidate-attribute`中的`transport`字段。
+- unsigned short类型的`port`，只读，可空：候选项的端口。
+- RTCIceCandidateType类型的`type`，只读，可控：候选项的类型。对应于`candidate-attribute`中的`candidate-types`字段。
+- RTCIceTcpCandidateType类型的`tcpType`，只读，可空：如果`protocal`为`tcp`，则`tcpType`代表TCP候选项的类型。否则，`tcpType`为`null`。对应于`candidate-attribute`中的`tcp-type`字段。
+- DOMString类型的`relatedAddress`，只读，可空：对于从别的候选项（中继或反射候选项）例如派生出的候选项，`relatedAddress`即派生源的IP地址。对于主机候选项，`relatedAddress`为`null`。对应于`candidate-attribute`中的`real-address`字段。
+- unsigned short类型的`relatedPort`，只读，可空：对于从别的候选项（中继或反射候选项）例如派生出的候选项，`relatedPort`即派生源的IP端口。对于主机候选项，`relatedPort`为`null`。对应于`candidate-attribute`中的`real-port`字段。
+- DOMString类型的`usernameFragment`，只读，可空：它携带了[ICE]15.4节中定义的`ufrag`。
+
+**方法：**
+
+- *toJSON()* ：
