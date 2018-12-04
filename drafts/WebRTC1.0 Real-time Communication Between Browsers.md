@@ -1301,4 +1301,58 @@ interface RTCCertificate {
 3. 设 *value.[Origin]* 槽值为 *serialized.[Origin]* 的一份拷贝。
 4. 设 *value.[KeyingMaterial]* 槽值为 *serialized.[KeyingMaterial]* 反序列化后生成的私钥材料。
 
-> 注意：以这种方式支持结构化克隆允许将`RTCCertificate`实例持久化到存储中。它还允许使用`postMessage`[webmessaging](http://w3c.github.io/webrtc-pc/#bib-webmessaging)这样的API将实例传递给其他源。但是，对象不能被除最初创建它的源以外的其他任何源使用。
+> 注意：以这种方式支持结构化克隆使得`RTCCertificate`实例持久化到存储成为可能。它还允许使用`postMessage`[webmessaging](http://w3c.github.io/webrtc-pc/#bib-webmessaging)这样的API将实例传递给其他源。但是，对象不能被除最初创建它的源以外的其他任何源使用。
+
+
+## 5. RTP媒体API
+
+**RTP媒体API** 使得网络应用可以在端到端对等连接之上发送并接收`MediaStreamTrack`流媒体轨对象。当媒体轨被添加至`RTCPeerConnection`时会导致信令发出信号；当本信号被转发至远程对等端，对应的媒体轨会在远程一侧被创建。
+
+> 注意：`RTCPeerConnection`发送的媒体轨与另一`RTCPeerConnection`接收的媒体轨之间没有确切的1：1对应关系。比如，被发送的媒体轨的ID与被接受的媒体轨的ID不存在映射关系。同样的，即使在接收端没有创建新的媒体轨，`replaceTrack`调用也能改变`RTCRtpSender`发出的媒体轨，对应的`RTCRtpReceiver`只会持有一个媒体轨，此媒体轨可能代表了整合在一起的多个媒体数据源。`addTransceiver`和`replaceTrack`调用都可被用于多次发送同一个媒体轨，在接收端每个轨都会被单独的接收器所观察。因此，考虑将`RTCRtpSender`与另一侧`RTCRtpReceiver`之间的媒体轨建立起1：1的关系会更为准确，如果有需要的话可以使用`RTCRtpTransceiver`的`mid`值来匹配发送端和接收端。
+
+发送媒体数据时，发送方可能需要重新调整或重新采样媒体以满足各种要求，包括SDP协商的信封。
+跟从[JSEP 3.6节](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-3.6)中的规则，视频的尺寸也许会被缩小以适应SDP的约束。媒体不得为了创建未在输入源中出现的伪数据而扩大规模，除非需要满足像素计数的约束，否则不得裁剪媒体，不得更改宽高比。
+
+> WebRTC工作组正在寻求关于需求与时间线实现的反馈，以便更复杂地处理这种情况。一些可能的设计方案已经在[Github issue 1283](https://github.com/w3c/webrtc-pc/issues/1283)中被讨论了。
+
+当视频被重新调整，例如对于某一宽度或高度和`scaleResolutionDownBy`值的组合，可能出现宽度或高度不是整数的情况。这种情况下用户代理必须使用结果的整数部分。如果缩放后的宽度或高度的整数部分为零，则传输的内容由具体实现指定。
+`MediaStreamTrack`的实际编码与传输过程由名为`RTCRtpSender`的对象管理。类似的，`MediaStreamTrack`的实际接收与解码过程由名为`RTCRtpReceiver`的对象管理。每个`RTCRtpSender`对象至多与一个媒体轨相关联，每个被接收的媒体轨也只能与一个`RTCRtpReceiver`关联。
+每个`MediaStreamTrack`都应该被编码和传输，使其的特性（视频轨道的宽度，高度和帧率；音频轨道的体积，采样尺寸，采样率和通道数）与远程端创建的媒体轨保持一致。某些情况下也可能不适用，比如可能会在端点或网络中出现资源限制，也可能`RTCRtpSender`应用的设置指示实现表现出不同的行为。
+一个`RTCPeerConnection`对象包含`RTCRtpTransceiver`的 **一个集合** ，代表了共享某些状态的发送端/接收端对。这个集合在`RTCPeerConnection`对象创建时被初始化为空集合。`RTCRtpSender`和`RTCRtpReceiver`总是由`RTCRtpTransceiver`同时创建，这样在它们的生命周期中可以保持关联。当应用通过`addTrack`方法将一个`MediaStreamTrack`附加到`RTCPeerConnection`对象上时，`RTCRtpTransceiver`会被隐式创建，应用使用`addTransceiver`方法时它会被显式创建。当一个包含新媒体描述的远程描述被应用时，`RTCRtpTransceiver`也会被创建。此外，当表示远程端点含有媒体数据要发送的远程描述被应用时，相关的`MediaStreamTrack`和`RTCRtpReceiver`会通过`track`事件被暴露给应用。
+
+### 5.1 RTCPeerConnection接口扩展
+
+RTC媒体API对以下的`RTCPeerConnection`接口作了扩展。
+
+```webidl
+partial interface RTCPeerConnection {
+  sequence<RTCRtpSender> getSenders();
+  sequence<RTCRtpReceiver> getReceivers();
+  sequence<RTCRtpTransceiver> getTransceivers();
+  RTCRtpSender addTrack(MediaStreamTrack track,
+  MediaStream... streams);
+  void removeTrack(RTCRtpSender sender);
+  RTCRtpTransceiver addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
+  optional RTCRtpTransceiverInit init);
+  attribute EventHandler ontrack;
+};
+```
+
+**属性：**
+
+- EventHandler类型的`ontrack`：该事件句柄的事件类型为`track`。
+
+**方法：**
+
+- *getSenders*：返回一组代表RTP发送端的`RTCRtpSender`对象序列，这些对象当前正附加到`RTCPeerConnection`对象上，且属于未停止的`RTCRtpTransceiver`对象。<br>  当`getSenders`方法被调用，用户代理必须返回[发送端收集算法]的执行结果。<br>  **发送端收集算法** 的执行结果如下：
+    1. 设 *transceivers* 为[收发器收集算法](http://w3c.github.io/webrtc-pc/#dfn-collecttransceivers)的执行结果。
+    2. 设 *senders* 为一个新的空序列。
+    3. 对 *transceivers* 中的每个对象：
+        1. 若对象的[Stopped]槽值为`false`，则将此对象的[Sender]槽加入 *senders* 。
+    4. 返回 *senders* 。
+- *getReceivers*：返回一组代表RTP接收端的`RTCRtpReceiver`对象序列，这些对象当前正附加到`RTCPeerConnection`对象上，且属于未停止的`RTCRtpTransceiver`对象。<br>  当`getReceivers`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *transceivers* 为[收发器收集算法](http://w3c.github.io/webrtc-pc/#dfn-collecttransceivers)的执行结果。
+    2. 设 *receivers* 为一个新的空序列。
+    3. 对 *transceivers* 中的每个对象：
+        1. 若对象的[Stopped]槽值为`false`，则将此对象的[Receiver]槽加入 *receivers* 。
+    4. 返回 *receivers* 。
