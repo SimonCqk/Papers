@@ -1356,3 +1356,14 @@ partial interface RTCPeerConnection {
     3. 对 *transceivers* 中的每个对象：
         1. 若对象的[Stopped]槽值为`false`，则将此对象的[Receiver]槽加入 *receivers* 。
     4. 返回 *receivers* 。
+- *getTransceivers*：返回一组代表RTP发送端的`RTCRtpTransceiver`对象序列，这些对象当前正附加到`RTCPeerConnection`对象上。<br>  `getTransceiver`方法必须返回[收发器收集算法]的执行结果。<br>  **收发器收集算法**  的执行结果如下：
+    1. 设 *transceivers* 为以插入顺序排列的新`RTCRtpTransceiver`对象序列，对象来自`RTCPeerConnection`的收发器列表。
+    2. 返回 *transceivers* 。
+- *addTrack*：将一个被指定媒体流`MediaStream`对象包含的新媒体轨加入`RTCPeerConnection`。<br>  当`addTrack`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *connection* 为调用方法的`RTCPeerConnection`对象。
+    2. 设 *track* 为作为方法第一个参数的`MediaStreamTrack`对象。
+    3. 设 *kind* 为 *track.kind* 。
+    4. 设 *streams* 为从方法剩余参数构造的`MediaStream`对象列表，如果方法被调用时只有一个参数，则为空列表。
+    5. 若 *connection* 的[IsClosed]槽值为`true`，抛出一个`InvalidStateError`。
+    6. 设 *senders* 为发送端收集算法的执行结果。如果 *senders* 中已存在一个用来发送 *track* 的发送端`RTCRtpSender`对象，则抛出一个`InvalidAccessError`。
+    7. 以下步骤描述了如何确定是否可以复用现有发送端。根据[JSEP 5.2.2&5.3.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.2)中的描述，这将导致未来调用的`createOffer`和`createAnswer`方法将相应的媒体描述标记为`sendrecv`或`sendonly`，并添加发送端的MSID。
