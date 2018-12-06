@@ -90,11 +90,11 @@ enum RTCIceCredentialType {
 
 - password：此凭据是依托于用户名和密码的长期认证方式，[RFC5389](https://www.w3.org/TR/webrtc/#bib-RFC5389)的10.2节有详细描述
 
-- oauth：一个基于OAuth2.0的认证方法，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有描述。<br>  对于OAuth认证，需要向ICE Agent供应3份凭证信息：`kid`（用于RTCIceServer成员变量username），`macKey`和`accessToken`（存在于RTCOAuthCredential字典类型内）。<br>  **注意：本规范并没有定义应用（起OAuth Client的作用）是如何从`Authorization Server`获取`accessToken, kid, macKey`这些凭证的，因为WebRTC只处理ICE Agent与TURN Server之间的交互。例如，应用可能使用PoP（Proof-of-Possession）的Token凭证类型，使用OAuth 2.0隐式授权类型。[RFC](https://www.w3.org/TR/webrtc/#bib-RFC7635)的附录B中有此示例。** <br>  OAuth Client应用，负责刷新凭证信息，并且在`accessToken`失效前利用新的凭证信息更新ICE Agent。OAuth Client可以利用RTCPeerConnection的setConfiguration方法来周期性的刷新TURN凭证。<br>  HMAC密钥（RTCOAuthCredential.macKey）的长度应是一个大于20字节的整数（160位）。<br> **注意：根据[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)4.1节，HMAC密钥必须是对称密钥，但对称密钥会生成大型的访问令牌，可能和单个STUN信息不兼容。** <br>  **注意：目前的STUN/TURN协议只是用了SHA-1/SHA-2族哈希算法来保证消息完整性，这在[RFC5389]的15.3节和[STUN-BIS]的14.6节作了定义。**
+- oauth：一个基于OAuth2.0的认证方法，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有描述。<br>  对于OAuth认证，需要向ICE Agent供应3份证书信息：`kid`（用于RTCIceServer成员变量username），`macKey`和`accessToken`（存在于RTCOAuthCredential字典类型内）。<br>  **注意：本规范并没有定义应用（起OAuth Client的作用）是如何从`Authorization Server`获取`accessToken, kid, macKey`这些证书的，因为WebRTC只处理ICE Agent与TURN Server之间的交互。例如，应用可能使用PoP（Proof-of-Possession）的Token证书类型，使用OAuth 2.0隐式授权类型。[RFC](https://www.w3.org/TR/webrtc/#bib-RFC7635)的附录B中有此示例。** <br>  OAuth Client应用，负责刷新证书信息，并且在`accessToken`失效前利用新的证书信息更新ICE Agent。OAuth Client可以利用RTCPeerConnection的setConfiguration方法来周期性的刷新TURN证书。<br>  HMAC密钥（RTCOAuthCredential.macKey）的长度应是一个大于20字节的整数（160位）。<br> **注意：根据[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)4.1节，HMAC密钥必须是对称密钥，但对称密钥会生成大型的访问令牌，可能和单个STUN信息不兼容。** <br>  **注意：目前的STUN/TURN协议只是用了SHA-1/SHA-2族哈希算法来保证消息完整性，这在[RFC5389]的15.3节和[STUN-BIS]的14.6节作了定义。**
 
 #### 4.2.3 `RTCOAuthCredential`字典
 
-`RTCOAuthCredential`字典被STUN/TURN客户端（内置于ICE Agent内）用于描述OAuth的鉴权凭证信息，对STUN/TURN服务器进行身份认证，[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有相关描述。注意`kid`参数并不在此字典类型中，而在`RTCIceServer`的`username`成员变量中。
+`RTCOAuthCredential`字典被STUN/TURN客户端（内置于ICE Agent内）用于描述OAuth的鉴权证书信息，对STUN/TURN服务器进行身份认证，[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有相关描述。注意`kid`参数并不在此字典类型中，而在`RTCIceServer`的`username`成员变量中。
 
 ```webidl
 dictionary RTCOAuthCredential {
@@ -106,7 +106,7 @@ dictionary RTCOAuthCredential {
 `RTCOAuthCredential`字典的成员变量：
 
 - DOMString类型的`macKey`，非空："mac_key"是一串base64-url格式的编码，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)的6.2节有相关描述。它被用在STUN的消息完整性哈希计算中（密码使用的则是基于密码的认证方式）。注意，OAuth响应里的"key"参数是一个JSON Web Key（JWK）或JWK编码后JWE格式的消息。同样注意，这是OAuth中唯一一个不被直接使用的参数，它只能从JWK的"k"参数中提取出来，"k"参数包含了需要的base-64编码的"mac_key"。
-- DOMString类型的`accessToken`，非空："access_token"是一串base64格式的编码，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)的6.2节有相关描述。这是一个自持有的令牌，应用不可见。认证加密被用于消息的加密和完整性保护。访问令牌包括了一个未加密的nonce值，供认证服务生成唯一的`mac_key`。令牌的第二部分由认证加密服务保护着，包括mac_key，时间戳和生存时间。时间戳和生存时间共同组成了过期信息，过期信息描述了令牌凭证合法且能被TURN服务接受的时间窗口。
+- DOMString类型的`accessToken`，非空："access_token"是一串base64格式的编码，在[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)的6.2节有相关描述。这是一个自持有的令牌，应用不可见。认证加密被用于消息的加密和完整性保护。访问令牌包括了一个未加密的nonce值，供认证服务生成唯一的`mac_key`。令牌的第二部分由认证加密服务保护着，包括mac_key，时间戳和生存时间。时间戳和生存时间共同组成了过期信息，过期信息描述了令牌证书合法且能被TURN服务接受的时间窗口。
 
 RTCOAuthCredential字典的一个例子：
 
@@ -135,7 +135,7 @@ dictionary RTCIceServer {
 
 - DOMString或sequence<DOMString>类型的`urls`，非空：[RFC7064]和[RFC7065]中定义的STUN/TURN的URI(s)，或其他的URI类型。
 - DOMString类型的`username`：如果`RTCIceServer`代表了一个TURN服务器，且`credentialType`是`"password"`，那么这一属性指定的是TURN服务器使用的用户名。<br>  如果`RTCIceServer`代表了一个TURN服务器，且`credentialType`是`"oauth"`，那么这一属性指定的是TURN服务器和认证服务器之间共享的对称密钥的密钥id，[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有相关描述。这是一个短暂且唯一的密钥标识符。`kid`允许TURN服务器选择合适的密钥材料对访问令牌进行解密，因此以`kid`为代表的密钥标识符被用于"access_token"的加密。`kid`值和OAuth响应中的"kid"参数相同，这被定义在[RFC7515](https://www.w3.org/TR/webrtc/#bib-RFC7515)的4.1.4节。
-- DOMString或RTCOAuthCredential类型的`credential`：如果`RTCIceServer`代表了一个TURN服务器，那么这一属性指定的是TURN服务器使用的凭证。<br> 如果`credentialType`是`"password"`，那么`credential`是`DOMString`类型，代表了长期使用的认证密码，这在[RFC5389](https://www.w3.org/TR/webrtc/#bib-RFC5389)的10.2节有相关描述。<br>  如果`credentialType`是`"oauth"`，那么`credential`是`RTCOAuthCredential`类型，包含了OAuth访问令牌和MAC值。
+- DOMString或RTCOAuthCredential类型的`credential`：如果`RTCIceServer`代表了一个TURN服务器，那么这一属性指定的是TURN服务器使用的证书。<br> 如果`credentialType`是`"password"`，那么`credential`是`DOMString`类型，代表了长期使用的认证密码，这在[RFC5389](https://www.w3.org/TR/webrtc/#bib-RFC5389)的10.2节有相关描述。<br>  如果`credentialType`是`"oauth"`，那么`credential`是`RTCOAuthCredential`类型，包含了OAuth访问令牌和MAC值。
 - RTCIceCredentialType类型的`credentialType`，默认值为"password"：如果`RTCIceServer`代表了一个TURN服务器，那么这一属性指定了当TURN服务器请求认证的时候*credential*是如何被使用的。
 
 一个RTCIceServer对象数组的例子：
@@ -232,7 +232,7 @@ dictionary RTCOfferOptions : RTCOfferAnswerOptions {
 
 `RTCOfferOptions`成员变量：
 
-- boolean类型的`iceRestart`，缺省值为"false"：当此值为true时，会生成与当前凭证（在`localDescription`属性的SDP中可见）不同的ICE凭证。应用此描述将重启ICE，具体描述在[ICE](https://www.w3.org/TR/webrtc/#bib-ICE)的9.1.1.1节。<br>  当此值为false，`localDescription`属性具有有效的ICE凭证，生成的描述将和当前的`localDescription`属性一致。 **注意：当`iceConnectionState`转换为"failed"时，建议执行ICE重启。应用也可能额外监听`iceConnectionState`到"disconnected"的变化，然后使用其他信息来源（比如使用`getStats`测量接下来几秒内发送或接收的字节数是否增加）确定是否应该重启ICE。**
+- boolean类型的`iceRestart`，缺省值为"false"：当此值为true时，会生成与当前证书（在`localDescription`属性的SDP中可见）不同的ICE证书。应用此描述将重启ICE，具体描述在[ICE](https://www.w3.org/TR/webrtc/#bib-ICE)的9.1.1.1节。<br>  当此值为false，`localDescription`属性具有有效的ICE证书，生成的描述将和当前的`localDescription`属性一致。 **注意：当`iceConnectionState`转换为"failed"时，建议执行ICE重启。应用也可能额外监听`iceConnectionState`到"disconnected"的变化，然后使用其他信息来源（比如使用`getStats`测量接下来几秒内发送或接收的字节数是否增加）确定是否应该重启ICE。**
 
 `RTCAnswerOptions`字典描述了指定`answer`类型会话的选项。
 
@@ -364,7 +364,7 @@ enum RTCIceConnectionState {
 
 1. 如果以下任何一个步骤出现了未知错误，都会抛出`UnkownError`错误，并在"message"域设置相应的错误描述。
 2. *connection*应是最新创建的`RTCPeerConnection`对象。
-3. 如果 *configuration* 中的凭证域`certificates`非空，则将来要对每个值检查是否过期。如果证书已过期或证书内部的[origin]插槽与当前证书的插槽不匹配，则会抛出`InvalidAccessError`，否则保存此凭证。如果没有指定`certificates`的值，一个或多个新`RTCCertificates`实例将生成供`RTCPeerConnection`实例使用。以上步骤可能是 *异步* 发生的，因此在步骤子序列运行过程中，`certificates`的值可能还是未定义的。如[RTCWEB-SECURITY 4.3.2.3](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-SECURITY)所说，WebRTC使用自签名而不是公钥基础结构（PKI）证书，因此到期检查是为了确保密钥不会无限期使用，同时不需要额外的证书检查。
+3. 如果 *configuration* 中的证书域`certificates`非空，则将来要对每个值检查是否过期。如果证书已过期或证书内部的[origin]插槽与当前证书的插槽不匹配，则会抛出`InvalidAccessError`，否则保存此证书。如果没有指定`certificates`的值，一个或多个新`RTCCertificates`实例将生成供`RTCPeerConnection`实例使用。以上步骤可能是 *异步* 发生的，因此在步骤子序列运行过程中，`certificates`的值可能还是未定义的。如[RTCWEB-SECURITY 4.3.2.3](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-SECURITY)所说，WebRTC使用自签名而不是公钥基础结构（PKI）证书，因此到期检查是为了确保密钥不会无限期使用，同时不需要额外的证书检查。
 4. 初始化ICE Agent的 *connection*。
 5. 填充 *connection* 内部的[Configuration] 槽。[设置配置](http://w3c.github.io/webrtc-pc/#set-pc-configuration)的规则由 *configuration* 指定。
 6. 填充 *connection* 内部的[IsClosed] 槽，初始化为`false`。
@@ -543,7 +543,7 @@ enum RTCIceConnectionState {
 1.  *configuration* 即要被处理的`RTCConfiguration`字典。
 2.  *connection* 即目标`RTCPeerConnection`对象。
 3.  如果`configuration.peerIdentity`已被设置，且其值与目标对等连接的对应值不相同，则抛出一个`InvalidModificationError`。
-4.  如果`configuration.certificates`已被设置，且其值与连接建立时使用的凭证列表不同，则抛出一个`InvalidModificationError`。
+4.  如果`configuration.certificates`已被设置，且其值与连接建立时使用的证书列表不同，则抛出一个`InvalidModificationError`。
 5.  如果`configuration.bundlePolicy`已被设置，且其值与连接的捆绑策略不同，则抛出一个`InvalidModificationError`。
 6.  如果`configuration.rtcpMuxPolicy`已被设置，且其值与连接的rtcpMux策略不同，则抛出一个`InvalidModificationError`。如果策略为`negotiate`且用户代理没有实现非多路复用的RTCP，则抛出一个`NotSupportedError`。
 7.  如果`configuration.iceCandidatePoolSize`已被设置，其值与连接先前使用的对应值不同，且`setLocalDescription`方法已被调用了，则抛出一个`InvalidModificationError`。
@@ -631,7 +631,7 @@ interface RTCPeerConnection : EventTarget {
 
 **方法：**
 
-- **createOffer** ：`createOffer`方法生成一个包含符合[RFC 3264]邀请规范的SDP blob对象，附带会话支持的配置，包括附加到本`RTCPeerConnection`的本地`MediaStreamTrack`对象的描述，本实现支持的编解码器/RTP/RTCP功能，ICE代理的参数以及DTLS连接。`options`参数也许会用于在邀请生成后施加额外的控制。<br> 如果系统对资源作了限制（例如有限个数的解码器），`createOffer`需要返回反映当前系统状态的一个邀请，这样当它尝试获取对应资源的时候`setLocalDescription`方法可以调用成功。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  为了生成[JSEP]中定义的邀请，创建SDP必须遵循一套合适的流程。对于一个邀请，生成的SDP包含会话支持的编解码器/RTP/RTCP全套功能（对应的应答只包含一个特定的子集）。在会话建立后的`createOffer`调用事件中，`createOffer`将生成一个兼容当前会话的邀请，包含自上次完整的邀约-答复以来对会话所做的所有更改，例如媒体轨的增加或删除。如果没有更改发生，邀请将包含当前本地描述的功能以及未来可以通过协商达成的附加功能。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选项。<br> `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的凭证。这些凭证和其他默认凭证一起生成凭证指纹集合。这些凭证指纹将被用于SDP的构造以及请求身份断言时的输入。<br>  如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份断言，则会话描述 *SHALL* 将包含一个合适的断言。<br>  SDP的创建过程暴露了底层系统的一部分媒体功能，它在设备上能提供持久的跨源信息。因此，它增加了应用的指纹表面。在隐私敏感的上下文中，浏览器可以考虑放缓，例如仅生成与SDP匹配的公共功能子集。（这是指纹向量）。<br>  当此方法被调用，用户代理必须运行以下步骤：<br>
+- **createOffer** ：`createOffer`方法生成一个包含符合[RFC 3264]邀请规范的SDP blob对象，附带会话支持的配置，包括附加到本`RTCPeerConnection`的本地`MediaStreamTrack`对象的描述，本实现支持的编解码器/RTP/RTCP功能，ICE代理的参数以及DTLS连接。`options`参数也许会用于在邀请生成后施加额外的控制。<br> 如果系统对资源作了限制（例如有限个数的解码器），`createOffer`需要返回反映当前系统状态的一个邀请，这样当它尝试获取对应资源的时候`setLocalDescription`方法可以调用成功。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  为了生成[JSEP]中定义的邀请，创建SDP必须遵循一套合适的流程。对于一个邀请，生成的SDP包含会话支持的编解码器/RTP/RTCP全套功能（对应的应答只包含一个特定的子集）。在会话建立后的`createOffer`调用事件中，`createOffer`将生成一个兼容当前会话的邀请，包含自上次完整的邀约-答复以来对会话所做的所有更改，例如媒体轨的增加或删除。如果没有更改发生，邀请将包含当前本地描述的功能以及未来可以通过协商达成的附加功能。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选项。<br> `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的证书。这些证书和其他默认证书一起生成证书指纹集合。这些证书指纹将被用于SDP的构造以及请求身份断言时的输入。<br>  如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份断言，则会话描述 *SHALL* 将包含一个合适的断言。<br>  SDP的创建过程暴露了底层系统的一部分媒体功能，它在设备上能提供持久的跨源信息。因此，它增加了应用的指纹表面。在隐私敏感的上下文中，浏览器可以考虑放缓，例如仅生成与SDP匹配的公共功能子集。（这是指纹向量）。<br>  当此方法被调用，用户代理必须运行以下步骤：<br>
     1. *connection* 即调用此方法的`RTCPeerConnection`对象。
     2. 如果 *connection* 的[IsClosed]槽为`true`，则返回一个用新创建的`InvalidStateErrror`拒绝的`promise`对象。
     3. 如果 *connection* 配置了身份提供方，且连接没有正式建立，则开启身份断言请求。
@@ -640,7 +640,7 @@ interface RTCPeerConnection : EventTarget {
         2. 并行开启创建邀请。
         3. 返回 *p* 。
 给定`promise`对象 *p* ，**创建邀请** 的步骤如下：
-    1. 如果 *connection* 没有通过凭证集合创建，或某个凭证还没被生成，则等待直到生成完毕。
+    1. 如果 *connection* 没有通过证书集合创建，或某个证书还没被生成，则等待直到生成完毕。
     2. 若 *connection* 配置了身份提供方，则命名为 *provider* ，否则 *provider* 为`null`。
     3. 若 *provider* 非空，等待身份断言过程结束。
     4. 如果 *provider* 身份断言失败，则以一个新创建的`NotReadableError`拒绝 *p* 并终止后续步骤。
@@ -654,7 +654,7 @@ promise *p* 中 **创建邀请的最终步骤** 包含以下：
     4. 设 *offer* 为新创建的`RTCSessionDescriptionInit`字典，其`type`成员被初始化为`"offer"`字符串，`sdp`成员被初始化为 *sdpString* 。
     5. 将内部的[LastOffer]槽设为 *sdpString* 。
     6. 用 *offer* 解析 *p* 。
-- **createAnswer**：`createAnswer`方法生成了一个包含与远程配置中的参数兼容的会话配置的[SDP]应答。就像`createOffer`，返回的SDP blob对象包含了附加到本`RTCPeerConnection`的本地`MediaStreamTracks`描述，与本会话协商好的编解码器/RTP/RTCP选项以及ICE代理收集到的所有候选项。`options`参数也许会用于在应答生成后施加额外的控制。<br>  就像`createOffer`，返回的描述应该能反应当前的系统状态。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  对于一个应答，生成的SDP应该包含特定的编解码器/RTP/RTCP配置，以及对应的邀请，邀请指定了如何建立媒体平面。生成的SDP必须按照[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)中定义的过程来生成应答。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选项。<br>  `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的凭证。这些凭证和其他默认凭证一起生成凭证指纹集合。这些凭证指纹将被用于SDP的构造以及请求身份断言时的输入。<br>  如[JSEP 4.1.8.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.8.1)定义，应答可以通过设置`type`成员为`pranswer`来标记为临时的。<br>   如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份断言，则会话描述 *SHALL* 将包含一个合适的断言。<br>  当方法被调用，用户代理必须运行以下步骤：<br>
+- **createAnswer**：`createAnswer`方法生成了一个包含与远程配置中的参数兼容的会话配置的[SDP]应答。就像`createOffer`，返回的SDP blob对象包含了附加到本`RTCPeerConnection`的本地`MediaStreamTracks`描述，与本会话协商好的编解码器/RTP/RTCP选项以及ICE代理收集到的所有候选项。`options`参数也许会用于在应答生成后施加额外的控制。<br>  就像`createOffer`，返回的描述应该能反应当前的系统状态。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  对于一个应答，生成的SDP应该包含特定的编解码器/RTP/RTCP配置，以及对应的邀请，邀请指定了如何建立媒体平面。生成的SDP必须按照[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)中定义的过程来生成应答。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选项。<br>  `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的证书。这些证书和其他默认证书一起生成证书指纹集合。这些证书指纹将被用于SDP的构造以及请求身份断言时的输入。<br>  如[JSEP 4.1.8.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.8.1)定义，应答可以通过设置`type`成员为`pranswer`来标记为临时的。<br>   如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份断言，则会话描述 *SHALL* 将包含一个合适的断言。<br>  当方法被调用，用户代理必须运行以下步骤：<br>
     1. *connection* 即调用此方法的`RTCPeerConnection`对象。
     2. 如果 *connection* 的[IsClosed]槽为`true`，则返回一个用新创建的`InvalidStateErrror`拒绝的`promise`对象。
     3. 如果 *connection* 配置了身份提供方，且连接没有正式建立，则开启身份断言请求。
@@ -664,7 +664,7 @@ promise *p* 中 **创建邀请的最终步骤** 包含以下：
         3. 并行开启创建应答。
         4. 返回 *p* 。
 给定`promise`对象 *p* ，**创建应答** 的步骤如下：
-    1. 如果 *connection* 没有通过凭证集合创建，或某个凭证还没被生成，则等待直到生成完毕。
+    1. 如果 *connection* 没有通过证书集合创建，或某个证书还没被生成，则等待直到生成完毕。
     2. 若 *connection* 配置了身份提供方，则命名为 *provider* ，否则 *provider* 为`null`。
     3. 若 *provider* 非空，等待身份断言过程结束。
     4. 如果 *provider* 身份断言失败，则以一个新创建的`NotReadableError`拒绝 *p* 并终止后续步骤。
@@ -1042,4 +1042,328 @@ interface RTCIceCandidate {
 
 **方法：**
 
-- *toJSON()* ：
+- *toJSON()* ：调用`RTCIceCandidate`的`toJSON()`操作将按以下步骤运行：
+    1. 设 *json* 即新`RTCIceCandidateInit`字典。，
+    2. 对于<"candidate", "sdpMid", "sdpMLineIndex", "usernameFragment">中的每个属性标识符 *attr*：
+        1. 给定本`RTCIceCandidate`对象，设 *value* 为获取到的 *attr* 底层值。
+        2. 设 `json[attr]=value`。
+    3. 返回 *json* 。
+
+```webidl
+dictionary RTCIceCandidateInit {
+  DOMString candidate = "";
+  DOMString? sdpMid = null;
+  unsigned short? sdpMLineIndex = null;
+  DOMString usernameFragment;
+};
+```
+
+`RTCIceCandidateInit`字典成员：
+
+- DOMString类型的`candidate`，缺省值为`""`：它携带了[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE) 15.1节中定义的`candidate-attributes`。如果这表示候选项结束指示，则`candidate`是空字符串。
+- DOMString类型的`sdpMid`，可空，缺省值为`null`：如果非`null`，它将包含与此候选项相关联的媒体组件的媒体流"识别标签"，这在[RFC5888](http://w3c.github.io/webrtc-pc/#bib-RFC5888)中定义。
+- unsigned short类型的`sdpMLineIndex`，可空，缺省值为`null`：如果非`null`，它表示该候选项关联的SDP中媒体描述的索引值（从0开始）。
+- DOMString类型的`usernameFragment`：它携带了[ICE]15.4节中定义的`ufrag`。
+
+#### *4.8.1.1 candidate-attribute语法*
+
+`candidate-attribute`语法被用于解析`RTCIceCandidate()`构造器中`candidateInitDict`变量的`candidate`成员。
+`candidate-attribute`的主要语法被定义在[ICE]的15.1节。除此之外，浏览器必须支持[RFC6544](http://w3c.github.io/webrtc-pc/#bib-RFC6544)中定义的ICE TCP语法扩展。
+浏览器也可以支持RFC中定义的其他语法扩展。
+
+#### *4.8.1.2 RTCIceProtocal枚举*
+
+`RTCIceProtocal`代表ICE候选项的协议。
+
+```webidl
+enum RTCIceProtocol {
+  "udp",
+  "tcp"
+};
+```
+
+**枚举值描述：**
+
+- `udp`：UDP类型候选项，ICE中有相关描述。
+- `tcp`：TCP类型候选项，[RFC6544]中有相关描述。
+
+#### *4.8.1.3 RTCIceTcpCandidateType枚举*
+
+`RTCIceTcpCandidateType`代表了ICE TCP类型的枚举值，定义在[RFC6544]
+
+```webidl
+enum RTCIceTcpCandidateType {
+  "active",
+  "passive",
+  "so"
+};
+```
+
+**枚举值描述：**
+
+- `active`：一个`active`的TCP候选项的传输将尝试打开出站连接但不会接收传入连接请求。
+- `passive`：一个`passive`的TCP候选项的传输将尝试接收传入连接请求但不会主动打开连接。
+- `so`：一个`passive`的候选项的传输将尝试与其对等端同时打开一个连接。
+
+> 注意：用户代理通常只会收集`active`类型的ICE TCP候选项。
+
+#### *4.8.1.4 RTCIceCandidateType枚举*
+
+`RTCIceCandidateType`代表ICE候选项的类型，定义在[ICE]15.1节。
+
+```webidl
+enum RTCIceCandidateType {
+  "host",
+  "srflx",
+  "prflx",
+  "relay"
+};
+```
+
+**枚举值描述：**
+
+- `host`：主机候选项，定义在ICE 4.1.1.1。
+- `srflx`：服务器反射候选项，定义在ICE 4.1.1.2。
+- `prflx`：对等反射候选项，定义在ICE 4.1.1.2。
+- `relay`：中继候选项，定义在ICE 7.1.3.2.1。
+
+#### 4.8.2 RTCPeerConnectionIceEvent
+
+`RTCPeerConnection`的`icecandidate`事件使用了`RTCPeerConnectionIceEvent`接口。
+当触发一个包含`RTCIceCandidate`对象的`RTCPeerConnectionIceEvent`事件时，对象必须包含`sdpMid`和`sdpMLineIndex`的值。如果`RTCIceCandidate`的类型为`srflx`或`relay`，事件的`url`属性必须被设置为候选项获得的ICE服务器的URL地址。
+
+> 注意：`icecandidate`有三种不同类型的表示：
+> - 一个已被收集的候选项。事件的`candidate`成员通常会被填充。它应该发信号通知远程对等端并传递给`addIceCandidate`方法。
+> - 某一`RTCIceTransport`已结束一代候选项的收集工作，并且提供了[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)8.2节中定义的候选项结束指示。这通过将`candidate.candidate`设为空字符串来表示。`candidate`对象应该发信号通知远程对等端并向普通ICE候选项一样传入`addIceCandidate`方法，以向远程对等端提供候选项结束指示。
+> 所有`RTCIceTransport`已结束候选项的收集工作，且`RTCPeerConnection`的`RTCIceGatheringState`已迁移至`complete`。这通过将事件的`candidate`成员设为`null`来表示。它只为了后向兼容性存在，并且本事件不需要通知远程对等端。它与`"complete"`状态的`icegatheringstatechange`事件等效。
+
+```webidl
+[Constructor(DOMString type, optional RTCPeerConnectionIceEventInit eventInitDict),
+  Exposed=Window]
+interface RTCPeerConnectionIceEvent : Event {
+  readonly attribute RTCIceCandidate? candidate;
+  readonly attribute DOMString? url;
+};
+```
+
+**构造器：**
+
+- RTCPeerConnectionIceEvent
+
+**属性：**
+
+- RTCIceCandidate类型的`candidate`，只读，可空：`candidate`属性是中造成事件的新ICE候选项`RTCIceCandidate`对象。<br>  当生成的事件代表候选项收集结束的时候，本属性被设为`null`。<br>  **注意：即使存在多个媒体组件，也只会出发一个包含`null`候选项的事件**
+- DOMString类型的`url`，只读，可空：`url`属性是在收集候选项时被用于识别STUN/TURN服务器的STUN/TURN URL地址。如果候选项并不是从STUN/TURN服务器收集来的，本参数为`null`。
+
+```webidl
+dictionary RTCPeerConnectionIceEventInit : EventInit {
+  RTCIceCandidate? candidate;
+  DOMString? url;
+};
+```
+
+`RTCPeerConnectionIceEventInit`字典成员：
+
+- RTCIceCandidate类型的`candidate`，可空：详情请见`RTCPeerConnectionIceEvent`接口的`candidate`属性。
+- DOMString类型的`url`，可空：`url`属性是在收集候选项时被用于识别STUN/TURN服务器的STUN/TURN URL地址。
+
+#### 4.8.3 RTCPeerConnectionIceErrorEvent
+
+RTCPeerConnection中的`icecandidateerror`事件使用了`RTCPeerConnectionIceErrorEvent`接口。
+
+```webidl
+[Constructor(DOMString type, RTCPeerConnectionIceErrorEventInit eventInitDict),
+  Exposed=Window]
+interface RTCPeerConnectionIceErrorEvent : Event {
+  readonly attribute DOMString hostCandidate;
+  readonly attribute DOMString url;
+  readonly attribute unsigned short errorCode;
+  readonly attribute USVString errorText;
+};
+```
+
+**构造器：**
+
+- RTCPeerConnectionIceErrorEvent
+
+**属性：**
+
+- DOMString类型的`hostCandidate`，只读：`hostCandidate`属性是被用来与STUN/TURN服务器通信的本地IP地址和端口。<br>  在多宿主系统上，可以使用多个接口来与服务器通信，该属性允许应用程序确定故障发生在哪一个接口上。<br>  如果出于隐私原因禁止使用多个接口，则此属性将根据需要设置为0.0.0.0:0或[::]：0。
+- DOMString类型的`url`，只读：`url`属性标识了可能发生故障的STUN/TURN服务器的URL地址。
+- unsigned short类型的`errorCode`，只读：`errorCode`属性是STUN/TURN服务器返回的数字错误码，详情见[STUN-PARAMETERS](http://w3c.github.io/webrtc-pc/#bib-STUN-PARAMETERS)。<br>  如果没有主机候选项可以到达服务器，`errorCode`将被设成STUN错误码范围外的701。在`RTCIceGatheringState`的"收集"阶段，每个服务器URL只会触发一次这个错误。
+- USVString类型的`errorText`，只读：`errorText`属性是STUN/TURN服务器返回的错误响应文本。<br>  如果服务器不能到达，`errorText`将被设为一个具体实现指定的值，指示错误的细节。
+
+```webidl
+dictionary RTCPeerConnectionIceErrorEventInit : EventInit {
+  DOMString hostCandidate;
+  DOMString url;
+  required unsigned short errorCode;
+  USVString statusText;
+};
+```
+
+`RTCPeerConnectionIceErrorEventInit`字典成员：
+
+- DOMString类型的`hostCandidate`：与STUN/TURN服务器通信的本地地址和端口。
+- DOMString类型的`url`：指示发生错误的STUN/TURN服务器的URL地址。
+- unsigned short类型的`errorCode`，必须项：STUN/TURN服务器返回的数字错误码。
+- USVString类型的`statusText`：STUN/TURN服务器返回的状态响应文本。
+
+### 4.9 优先级和服务质量(QoS)模型
+
+许多应用程序具有相同数据类型的多个媒体流，并且通常一些流程比其他流程更重要。 WebRTC使用[RTCWEB-TRANSPORT](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-TRANSPORT)和[TSVWG-RTCWEB-QOS](http://w3c.github.io/webrtc-pc/#bib-TSVWG-RTCWEB-QOS)中描述的优先级和服务质量（QoS）框架为有助于在某些网络环境中提供QoS的数据包提供优先级和DSCP标记。优先级设置可用于指示各种流的相对优先级。优先级API允许JavaScript应用程序通过将`RTCRtpEncodingParameters`对象的`priority`属性设置为以下值之一来告诉浏览器特定媒体流对于应用程序来说，重要性是高，中，低还是非常低。
+
+#### 4.9.1 RTCPriorityType枚举
+
+```webidl
+enum RTCPriorityType {
+  "very-low",
+  "low",
+  "medium",
+  "high"
+};
+```
+
+**枚举值描述：**
+
+- `very-low`：详情见[RTCWEB-TRANSPORT](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-TRANSPORT)，第4.1和4.2节。对应于[RTCWEB-DATA](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA)中定义的"below normal"。
+- `low`：详情见[RTCWEB-TRANSPORT](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-TRANSPORT)，第4.1和4.2节。对应于[RTCWEB-DATA](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA)中定义的"normal"。
+- `medium`：详情见[RTCWEB-TRANSPORT](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-TRANSPORT)，第4.1和4.2节。对应于[RTCWEB-DATA](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA)中定义的"high"。
+- `high`：详情见[RTCWEB-TRANSPORT](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-TRANSPORT)，第4.1和4.2节。对应于[RTCWEB-DATA](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA)中定义的"extra high"。
+
+使用此API的应用程序应该意识到，通过降低不重要的事物的优先级而不是提高重要事物的优先级，通常可以获得更好的整体用户体验。
+
+
+### 4.10 证书管理
+
+`RTCPeerConnection`实例使用的对对等连接进行鉴权的证书使用了`RTCCertificate`接口。这些对象可以由使用`generateCertificate`方法的应用程序显式生成，并且可以在构造新的`RTCPeerConnection`实例时在`RTCConfiguration`中提供。
+显式的证书管理功能是可选的。如果构造一个新`RTCPeerConnection`对向时，应用没有提供`certificates`配置选项，则用户代理必须生成新的证书集合。集合必须包括一个携带P-256曲线私钥，SHA-256哈希签名的ECDSA证书。
+
+```webidl
+partial interface RTCPeerConnection {
+  static Promise<RTCCertificate> generateCertificate(AlgorithmIdentifier keygenAlgorithm);
+};
+```
+
+**方法：**
+
+- 静态 *generateCertificate* 方法：`generateCertificate`函数使用户代理创建并存储一个X.509证书[X509V3](http://w3c.github.io/webrtc-pc/#bib-X509V3)及对应的私钥。`RTCCertificate`接口的表单中提供了一个信息句柄。返回的`RTCCertificate`可被用于控制`RTCPeerConnection`创建的DTLS会话中提供的证书。<br>  *keygenAlgorithm* 参数被用于控制于证书关联的私钥是如何生成的。 *keygenAlgorithm* 算法使用WebCrypto[http://w3c.github.io/webrtc-pc/#bib-WebCryptoAPI]的`AlgorithmIdentifier`类型。 *keygenAlgorithm* 值对于`window.crypto.subtle.generateKey`必须是一个合法参数，也就是说，当根据WebCrypto算法[规范化](https://www.w3.org/TR/WebCryptoAPI/#algorithm-normalization)过程[WebCryptoAPI](http://w3c.github.io/webrtc-pc/#bib-WebCryptoAPI)进行规范化时，值必须不能产生错误，其中操作名称为`generateKey`，并且[supportedAlgorithms](https://www.w3.org/TR/WebCryptoAPI/#dfn-supportedAlgorithms)值特定于RTCPeerConnection证书的生成。如果算法规范化的过程产生了一个错误，`generateCertificate`调用必须以这个错误拒绝返回。<br>  生成的密钥中提供的签名被用于DTLS连接的鉴权。被标识的算法（由标准化`AlgorithmIdentifier`的`name`字段标识）必须是可用于产生签名的非对称算法。<br>  该过程产生的证书同样包含了一个签名。签名的有效性仅与兼容性相关。只有公钥和生成的证书指纹被`RTCPeerConnection`所用，但如果证书格式正确，则证书更有可能被接受。浏览器会选择签署证书的算法，如果需要哈希算法，浏览器应该选择SHA-256算法。<br>  生成的证书不得包含可链接到用户或用户代理的信息。应该使用可分辨名称和序列号的随机值。<br>  如果 *keygenAlgorithm* 参数标识用户代理不能或不会用于为`RTCPeerConnection`生成证书的算法，则用户代理必须以一个`NotSupportedError`类型的`DOMException`拒绝对`generateCertificate()`的调用。<br>  以下值必须被用户代理所支持：`{ name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" }, and { name: "ECDSA", namedCurve: "P-256" }.`。<br>  **注意：预计用户代理将接受的值的集合较小，甚至是固定的。**
+
+#### 4.10.1 RTCCertificateExpiration字典
+
+`RTCCertificateExpiration`被用于为`generateCertificate`生成的证书设置一个过期日期。
+
+```webidl
+dictionary RTCCertificateExpiration {
+  [EnforceRange]
+  DOMTimeStamp expires;
+};
+```
+
+- `expires`：一个可选的`expires`属性可能被添加入传至`generateCertificate`的算法中。如果参数存在，则代表`RTCCertificate`相对于当前时间的最长有效时间。<br>  当以一个`object`参数调用`generateCertificate`时，用户代理会尝试将object转换为`RTCCertificateExpiration`类型。如果转换失败，会立即以一个新创建的`TypeError`拒绝并返回一个promise，然后终止后续步骤。<br>  用户代理生成的证书的过期时间为当前时间加上`expires`的值。返回的`RTCCertificate`中的`expires`属性被设为证书的过期时间。用户代理可选择限制`expires`属性值的大小。
+
+#### 4.10.2 RTCCertificate接口
+
+`RTCCertificate`接口代表了一个用于WebRTC通信鉴权的证书。除了可见的属性，内部槽包含了生成的私有密钥子集[KeyingMaterial]的句柄，`RTCPeerConnection`与对等端进行身份验证的证书[Certificate]，以及创建的对象的源[Origin]。
+
+```webidl
+[Exposed=Window,
+  Serializable]
+interface RTCCertificate {
+  readonly attribute DOMTimeStamp expires;
+  static sequence<AlgorithmIdentifier> getSupportedAlgorithms();
+  sequence<RTCDtlsFingerprint> getFingerprints();
+};
+```
+
+**属性：**
+
+- DOMTimeStamp类型的`expires`，只读：`expires`属性指示了相对于1970-01-01T00：00：00Z的日期和时间（以毫秒为单位），在这之后的时间浏览器将认为证书失效。在这时间之后，利用此证书尝试创建`RTCPeerConnection`的操作都将失效。<br>  注意该值不一定在证书本身的`notAfter`参数中有所体现。
+
+**方法：**
+
+- *getSupportedAlgorithms* ：返回提供一组代表支持证书算法的序列。必须返回至少一个算法。
+
+> 注意：例如，"RSASSA-PKCS1-v1_5"算法字典，`RsaHashedKeyGenParams`，包含了模数长度，公共指数和哈希算法的字段。实现可能支持大范围的模数长度和指数，以及有限数目的哈希算法。在这种场景下，实现为每个支持的RSA哈希算法返回一个`算法标识符`是合理的，对于`modulusLength`和`publicExponent`使用默认或推荐值（比如1024或65537）。
+
+- *getFingerprints* ：返回证书指纹列表，其中一个是使用证书签名中使用的摘要算法计算的。
+
+出于此API的目的，[Certificate]槽中包含未结构化的二进制数据。目前还没有提供访问[KeyingMaterial]的机制。实现必须支持应用从持久化存储中保存和取回`RTCCertificate`对象。在实现中，`RTCCertificate`可能不会直接持有私钥资料（它可能存储在某一安全模块中），私钥的引用可以保存在[KeyingMaterial]内部槽中，其中的私钥可以被存储的也可以被使用。
+`RTCCertificate`对象是可序列化对象。给定 *value* 和 *serialized* ，它们的序列化步骤如下：
+1. 设 *serialized.[Expires]* 值为 *value* 的`expires`属性。
+2. 设 *serialized.[Certificate]* 值为 *value* 的[Certificate]槽中未结构化的二进制数据的一份拷贝。
+3. 设 *serialized.[Origin]* 值为 *value* 的[Origin]槽中未结构化的二进制数据的一份拷贝。
+4. 设 *serialized.[KeyingMaterial]* 值为 *value* 的[KeyingMaterial]槽中表示私钥材料序列化的结果。
+
+给定 *value* 和 *serialized* ，它们的反序列化步骤如下：
+1. 初始化 *value* 的`expires`属性为 *serialized.[Expires]* 。
+2. 设 *value.[Certificate]* 槽值为 *serialized.[Certificate]* 的一份拷贝。
+3. 设 *value.[Origin]* 槽值为 *serialized.[Origin]* 的一份拷贝。
+4. 设 *value.[KeyingMaterial]* 槽值为 *serialized.[KeyingMaterial]* 反序列化后生成的私钥材料。
+
+> 注意：以这种方式支持结构化克隆使得`RTCCertificate`实例持久化到存储成为可能。它还允许使用`postMessage`[webmessaging](http://w3c.github.io/webrtc-pc/#bib-webmessaging)这样的API将实例传递给其他源。但是，对象不能被除最初创建它的源以外的其他任何源使用。
+
+
+## 5. RTP媒体API
+
+**RTP媒体API** 使得网络应用可以在端到端对等连接之上发送并接收`MediaStreamTrack`流媒体轨对象。当媒体轨被添加至`RTCPeerConnection`时会导致信令发出信号；当本信号被转发至远程对等端，对应的媒体轨会在远程一侧被创建。
+
+> 注意：`RTCPeerConnection`发送的媒体轨与另一`RTCPeerConnection`接收的媒体轨之间没有确切的1：1对应关系。比如，被发送的媒体轨的ID与被接受的媒体轨的ID不存在映射关系。同样的，即使在接收端没有创建新的媒体轨，`replaceTrack`调用也能改变`RTCRtpSender`发出的媒体轨，对应的`RTCRtpReceiver`只会持有一个媒体轨，此媒体轨可能代表了整合在一起的多个媒体数据源。`addTransceiver`和`replaceTrack`调用都可被用于多次发送同一个媒体轨，在接收端每个轨都会被单独的接收器所观察。因此，考虑将`RTCRtpSender`与另一侧`RTCRtpReceiver`之间的媒体轨建立起1：1的关系会更为准确，如果有需要的话可以使用`RTCRtpTransceiver`的`mid`值来匹配发送端和接收端。
+
+发送媒体数据时，发送方可能需要重新调整或重新采样媒体以满足各种要求，包括SDP协商的信封。
+跟从[JSEP 3.6节](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-3.6)中的规则，视频的尺寸也许会被缩小以适应SDP的约束。媒体不得为了创建未在输入源中出现的伪数据而扩大规模，除非需要满足像素计数的约束，否则不得裁剪媒体，不得更改宽高比。
+
+> WebRTC工作组正在寻求关于需求与时间线实现的反馈，以便更复杂地处理这种情况。一些可能的设计方案已经在[Github issue 1283](https://github.com/w3c/webrtc-pc/issues/1283)中被讨论了。
+
+当视频被重新调整，例如对于某一宽度或高度和`scaleResolutionDownBy`值的组合，可能出现宽度或高度不是整数的情况。这种情况下用户代理必须使用结果的整数部分。如果缩放后的宽度或高度的整数部分为零，则传输的内容由具体实现指定。
+`MediaStreamTrack`的实际编码与传输过程由名为`RTCRtpSender`的对象管理。类似的，`MediaStreamTrack`的实际接收与解码过程由名为`RTCRtpReceiver`的对象管理。每个`RTCRtpSender`对象至多与一个媒体轨相关联，每个被接收的媒体轨也只能与一个`RTCRtpReceiver`关联。
+每个`MediaStreamTrack`都应该被编码和传输，使其的特性（视频轨道的宽度，高度和帧率；音频轨道的体积，采样尺寸，采样率和通道数）与远程端创建的媒体轨保持一致。某些情况下也可能不适用，比如可能会在端点或网络中出现资源限制，也可能`RTCRtpSender`应用的设置指示实现表现出不同的行为。
+一个`RTCPeerConnection`对象包含`RTCRtpTransceiver`的 **一个集合** ，代表了共享某些状态的发送端/接收端对。这个集合在`RTCPeerConnection`对象创建时被初始化为空集合。`RTCRtpSender`和`RTCRtpReceiver`总是由`RTCRtpTransceiver`同时创建，这样在它们的生命周期中可以保持关联。当应用通过`addTrack`方法将一个`MediaStreamTrack`附加到`RTCPeerConnection`对象上时，`RTCRtpTransceiver`会被隐式创建，应用使用`addTransceiver`方法时它会被显式创建。当一个包含新媒体描述的远程描述被应用时，`RTCRtpTransceiver`也会被创建。此外，当表示远程端点含有媒体数据要发送的远程描述被应用时，相关的`MediaStreamTrack`和`RTCRtpReceiver`会通过`track`事件被暴露给应用。
+
+### 5.1 RTCPeerConnection接口扩展
+
+RTC媒体API对以下的`RTCPeerConnection`接口作了扩展。
+
+```webidl
+partial interface RTCPeerConnection {
+  sequence<RTCRtpSender> getSenders();
+  sequence<RTCRtpReceiver> getReceivers();
+  sequence<RTCRtpTransceiver> getTransceivers();
+  RTCRtpSender addTrack(MediaStreamTrack track,
+  MediaStream... streams);
+  void removeTrack(RTCRtpSender sender);
+  RTCRtpTransceiver addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
+  optional RTCRtpTransceiverInit init);
+  attribute EventHandler ontrack;
+};
+```
+
+**属性：**
+
+- EventHandler类型的`ontrack`：该事件句柄的事件类型为`track`。
+
+**方法：**
+
+- *getSenders*：返回一组代表RTP发送端的`RTCRtpSender`对象序列，这些对象当前正附加到`RTCPeerConnection`对象上，且属于未停止的`RTCRtpTransceiver`对象。<br>  当`getSenders`方法被调用，用户代理必须返回[发送端收集算法]的执行结果。<br>  **发送端收集算法** 的执行结果如下：
+    1. 设 *transceivers* 为[收发器收集算法](http://w3c.github.io/webrtc-pc/#dfn-collecttransceivers)的执行结果。
+    2. 设 *senders* 为一个新的空序列。
+    3. 对 *transceivers* 中的每个对象：
+        1. 若对象的[Stopped]槽值为`false`，则将此对象的[Sender]槽加入 *senders* 。
+    4. 返回 *senders* 。
+- *getReceivers*：返回一组代表RTP接收端的`RTCRtpReceiver`对象序列，这些对象当前正附加到`RTCPeerConnection`对象上，且属于未停止的`RTCRtpTransceiver`对象。<br>  当`getReceivers`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *transceivers* 为[收发器收集算法](http://w3c.github.io/webrtc-pc/#dfn-collecttransceivers)的执行结果。
+    2. 设 *receivers* 为一个新的空序列。
+    3. 对 *transceivers* 中的每个对象：
+        1. 若对象的[Stopped]槽值为`false`，则将此对象的[Receiver]槽加入 *receivers* 。
+    4. 返回 *receivers* 。
+- *getTransceivers*：返回一组代表RTP发送端的`RTCRtpTransceiver`对象序列，这些对象当前正附加到`RTCPeerConnection`对象上。<br>  `getTransceiver`方法必须返回[收发器收集算法]的执行结果。<br>  **收发器收集算法**  的执行结果如下：
+    1. 设 *transceivers* 为以插入顺序排列的新`RTCRtpTransceiver`对象序列，对象来自`RTCPeerConnection`的收发器列表。
+    2. 返回 *transceivers* 。
+- *addTrack*：将一个被指定媒体流`MediaStream`对象包含的新媒体轨加入`RTCPeerConnection`。<br>  当`addTrack`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *connection* 为调用方法的`RTCPeerConnection`对象。
+    2. 设 *track* 为作为方法第一个参数的`MediaStreamTrack`对象。
+    3. 设 *kind* 为 *track.kind* 。
+    4. 设 *streams* 为从方法剩余参数构造的`MediaStream`对象列表，如果方法被调用时只有一个参数，则为空列表。
+    5. 若 *connection* 的[IsClosed]槽值为`true`，抛出一个`InvalidStateError`。
+    6. 设 *senders* 为发送端收集算法的执行结果。如果 *senders* 中已存在一个用来发送 *track* 的发送端`RTCRtpSender`对象，则抛出一个`InvalidAccessError`。
+    7. 以下步骤描述了如何确定是否可以复用现有发送端。根据[JSEP 5.2.2&5.3.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.2)中的描述，这将导致未来调用的`createOffer`和`createAnswer`方法将相应的媒体描述标记为`sendrecv`或`sendonly`，并添加发送端的MSID。
