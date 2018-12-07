@@ -1366,4 +1366,161 @@ partial interface RTCPeerConnection {
     4. 设 *streams* 为从方法剩余参数构造的`MediaStream`对象列表，如果方法被调用时只有一个参数，则为空列表。
     5. 若 *connection* 的[IsClosed]槽值为`true`，抛出一个`InvalidStateError`。
     6. 设 *senders* 为发送端收集算法的执行结果。如果 *senders* 中已存在一个用来发送 *track* 的发送端`RTCRtpSender`对象，则抛出一个`InvalidAccessError`。
-    7. 以下步骤描述了如何确定是否可以复用现有发送端。根据[JSEP 5.2.2&5.3.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.2)中的描述，这将导致未来调用的`createOffer`和`createAnswer`方法将相应的媒体描述标记为`sendrecv`或`sendonly`，并添加发送端的MSID。
+    7. 以下步骤描述了如何确定是否可以复用现有发送端。根据[JSEP 5.2.2&5.3.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.2)中的描述，这将导致未来调用的`createOffer`和`createAnswer`方法将相应的媒体描述标记为`sendrecv`或`sendonly`，并添加发送端的MSID。<br>  如果 *senders* 中的某个`RTCRtpSender`对象与以下所有原则相匹配，则让 *sender* 为那个对象，否则为`null`：
+        - sender的媒体轨为空。
+        - 与发送端相关联transceiver的类型为`RTCRtpTransceiver`，并与 *kind* 匹配。
+        - 与`RTCRtpTransceiver`相关联的sender的[Stopped]槽值为`false`。
+        - sender从来没有被使用过。更准确地说，与`RTCRtpTransceiver`相关联的sender的[CurrentDirection]槽值为`sendrecv`或`sendonly`。
+    8. 如果 *sender* 非空，运行以下步骤来使用sender：
+        1. 将 *track* 赋给 *sender* 的[SenderTrack]。
+        2. 将 *sender* 的[AssociatedMediaStreamIds]槽设为空集合。
+        3. 对于 *streams* 中的每个 *stream* ，若[AssociatedMediaStreamIds]槽中尚未包含其`id`，则将`stream.id`加入。
+        4. 设 *transceiver* 成为于 *sender* 相关联的`RTCRtpTransceiver`对象。
+        5. 如果 *transceiver* 的[Direction]槽值为`recvonly`，则将此槽的值设为`sendrecv`。
+        6. 如果 *transceiver* 的[Direction]槽值为`inactive`，则将此槽的值设为`sendonly`。
+    9. 如果 *sender* 为空，则运行以下步骤：
+        1.  以 *track, kind, streams* 为参数创建RTCRtpSender，并把结果赋给 *sender* 。
+        2.  以 *kind* 为参数创建RTCRtpReceiver，并把结果赋给 *receiver* 。
+        3.  以 *sender, receiver* 和一个值为`sendrecv`的`RTCRtpTransceiverDirection`对象作为参数创建RTCRtpTransceiver，并把结果赋给 *transceiver* 。
+        4.  将 *transceiver* 添加到 *connection* 的收发器集合中。
+    10. 媒体轨可能包含应用程序无法访问的内容。这可能是由于被标记了`peerIdentity`选项或任何可能追踪CORS跨源数据的操作造成的。这些媒体轨可被用于`addTrack`方法，并会为它们创建`RTCRtpSender`，但除非内容标有`peerIdentify`并且符合发送要求（详见[隔离媒体流](http://w3c.github.io/webrtc-pc/#dfn-isolated-stream)），否则不能被发送。<br>  所有应用无法访问的媒体流不能被发送至对等连接，将用静音（音频），黑帧（视频）或其他等效的内容替代媒体轨中的内容。<br>  注意，这一属性以后可能会变化。
+    11. 更新 *connection* 的协商标记位。
+    12. 返回 *sender* 。
+- *removeTrack*：停止 *sender* 发送媒体数据。`RTCRtpSender`仍然存在于`getSenders`中。如[JSEP 5.2.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.2)中所述，这么做会导致未来的`createOffer`调用将对应收发器中的媒体描述标记为`recvonly`或`inactive`。<br>  当另一对等连接以同样的方式停止发送柜体会，媒体轨会从最初`track`事件生成的所有远程`MediaStreams`中被移除。如果`MediaStreamTrack`没有被静音，则`muted`事件会在此媒体轨上被触发。<br>  当`removeTrack`方法被调用，用户代理必须按以下步骤运行：<br>
+    1. 设`removeTrack`的参数为 *sender* 。
+    2. 设 *connection* 为调用此方法的`RTCPeerConnection`对象。
+    3. 若 *connection* 的[IsClosed]槽值为`true`，抛出一个`InvalidStateError`。
+    4. 若 *sender* 没有被 *connection* 创建，抛出一个`InvalidAccessError`。
+    5. 设 *senders* 为[发送端收集算法]的执行结果。
+    6. 若 *sender* 不在 *senders* 中（意味着由于将RTCSessionDescription的类型设为了"rollback"，它已被删除），则终止后续步骤。
+    7. 若 *sender* 的[SenderTrack]槽为空，则终止后续步骤。
+    8. 将 *sender* 的[SendTrack]槽设为空。
+    9. 设 *transceiver* 为 *sender* 对应的`RTCRtpTransceiver`对象。
+    10. 若 *transceiver* 的[Direction]槽值为`sendrecv`，将 *transceiver* 的[Direction]槽值设为`recvonly`。
+    11.  若 *transceiver* 的[Direction]槽值为`sendonly`，将 *transceiver* 的[Direction]槽值设为`inactive`。
+    12.  更新 *connection* 的协商标记位。
+- *addTransceiver*：创建一个新的`RTCRtpTransceiver`对象并将其加入收发器集合。<br>  如[JSEP 5.2.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.2)中所述，以上添加收发器的动作会导致未来的`createOffer`调用将一个媒体描述添加到对应的收发器中。<br>   如[JSEP 5.5&5.6](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.5)中所述，`mid`的初始值为空。设置一个新的`RTCSessionDescription`可能会导致它变为一个非空值。<br>  `senEncodings`参数会被用于指定提供的联播编码的数量，以及选择性的提供它们的RID和编码参数。<br>  当本方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *init* 为第二个参数。
+    2. 设 *streams* 为 *init*中的`streams`成员。
+    3. 设 *sendEncodings* 为 *init* 中的`sendEncodings`成员。
+    4. 设 *direction* 为 *init* 中的`direction`成员。
+    5. 若第一个参数为字符串，则设 *kind* 为它并按以下步骤运行：
+        1. 若 *kind* 不是一个合法的`MediaStreamTrack kind`，抛出一个`TypeError`。
+        2. 设 *track* 为`null`。
+    6. 若第一个参数为`MediaStreamTrack`，设 *track* 为它并设 *kind* 为 *track.kind* 。
+    7. 如果 *connection* 的[IsClosed]槽值为`true`，抛出一个`InvalidStateError`。
+    8. 按以下步骤验证 *sendEncodings* 的合法性：
+        1. 验证 *sendEncodings* 中的每个`rid`值仅由字母数字字符（a-z，A-Z，0-9）组成，最多16个字符。如果某个RID不符合这些要求，抛出一个`TypeError`。
+        2. 如果 *sendEncodings* 中的`RTCRtpEncodingParameters`字典包含除了`rid`之外的只读参数，则抛出一个`InvalidAccessError`。
+        3. 验证 *sendEncodings* 中的每个`scaleResolutionDownBy`值大于等于1.0。如果某一`scaleResolutionDownBy`值不符合要求，抛出一个`RangeError`。
+        4. 验证 *sendEncodings* 中的每个`maxFramerate`值大于等于0.0。如果某一`maxFramerate`值不符合要求，抛出一个`RangeError`。
+        5. 设 *maxN* 为用户代理可能支持的最大同时编码数，最小值为1。这应该是一个乐观的数字，因为尚未知道编解码器的使用方法。
+        6. 如果存储在 *sendEncodings* 中的`RTCRtpEncodingParameters`数量超出 *maxN* ，则从尾部开始修剪 *sendEncodings* 直到长度为 *maxN* 。
+        7. 如果存储在 *sendEncodings* 中的`RTCRtpEncodingParameters`数量为1，则移除其所有`rid`成员。  **注意：在`sendEncodings`中提供单个默认的`RTCRtpEncodingParameters`参数，使得应用程序可以在随后未使用联播也能调用`setParameters`设置编码参数。**
+    9. 以 *track, kind, streams, sendEncodings* 作为参数创建一个RTCRtpSender，并设结果为 *sender* 。<br>  如果 *sendEncodings* 是集合，则接下来的`createOffer`调用将被配置用来发送[JSEP 5.2.2&5.2.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.1)中的多个RTP编码。当`setRemoteDescription`以一个对应的可以接受多个RTP编码（详见[JSEP 3.7](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-3.7)）的远程描述调用时，`RTCRtpSender`也许会发送多个RTP编码，且通过收发器的`sender.getParameters`方法取回的参数会体现协商后的编码。
+    10. 以 *kind* 为参数创建RTCRtpReceiver并将结果设为 *receiver* 。
+    11. 以 *sender, receiver, direction* 为参数创建RTCRtpTransceiver并将结果设为 *transceiver* 。
+    12. 将 *transceiver* 添加入 *connection* 的收发器集合。
+    13. 更新 *connection* 的协商标记位。
+    14. 返回 *transceiver* 。
+
+```webidl
+dictionary RTCRtpTransceiverInit {
+  RTCRtpTransceiverDirection direction = "sendrecv";
+  sequence<MediaStream> streams = [];
+  sequence<RTCRtpEncodingParameters> sendEncodings = [];
+};
+```
+
+**RTCRtpTransceiverInit字典成员：**
+
+- RTCRtpTransceiverDirection类型的`direction`，缺省值为`sendrecv`：`RTCRtpTransceiver`的方向。
+- sequence<MediaStream>类型的`streams`：当远程对等连接中被触发的`track`事件与被添加的`RTCRtpReceiver`对象相对应时，这些媒体流将被放进track事件中。
+- sequence<RTCRtpEncodingParameters>类型的`sendEncodings`：一个包含发送RTP媒体编码所需参数的序列。
+
+```webidl
+enum RTCRtpTransceiverDirection {
+  "sendrecv",
+  "sendonly",
+  "recvonly",
+  "inactive"
+};
+```
+
+`RTCRtpTransceiverDirection`枚举值描述：
+
+- sendrecv：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 将向对等端发出发送RTP的邀请，若对等端接收邀请，且`sender.getParameters().encodings[i].active`全为`true`的时候，数据将开始发送。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 将发出接收RTP的邀请，在远程对等端接收邀请之后会开始接收数据。
+- sendonly：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 将向对等端发出发送RTP的邀请，若对等端接收邀请，且`sender.getParameters().encodings[i].active`全为`true`的时候，数据将开始发送。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 不会发出接收RTP的邀请，也不会接收数据。
+- recvonly：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 不会发出发送RTP的邀请，也不会发送数据。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 将发出接收RTP的邀请，在远程对等端接收邀请之后会开始接收数据。
+- Inactive：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 不会发出发送RTP的邀请，也不会发送数据。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 不会发出接收RTP的邀请，也不会接收数据。
+
+#### 5.1.1 处理远程媒体流轨
+
+应用可以通过调用`RTCRtpTranceiver.stop()`停用两个方向，并拒绝即将传入的媒体描述，或将收发器的方向设为`sendonly`来拒绝即将到达的那一侧。
+给定`RTCRtpTranceiver` *transceiver* 和 *trackEventInits* ，为了**处理远程媒体轨的加入**， 用户代理必须按以下步骤运行：
+
+1. 设 *receiver* 为 *transceiver* 的[Receiver]槽。
+2. 设 *track* 为 *receiver* 的[ReceiverTrack]槽。
+3. 设 *streams* 为 *receiver* 的[AssociatedRemoteMediaStreams]槽。
+4. 将 *receiver, track, streams, transceiver* 作为成员变量，创建一个`RTCTrackEventInit`字典，并把它加入 *trackEventInits* 。
+   
+给定`RTCRtpTranceiver` *transceiver* 和 *muteTracks* ，为了**处理远程媒体轨的移除**，用户代理必须按以下步骤运行：
+
+1. 设 *receiver* 为 *transceiver* 的[Receiver]槽。
+2. 设 *track* 为 *receiver* 的[ReceiverTrack]槽。
+3. 若 *track.muted* 为`false`，则将 *track* 加入 *muteTracks* 。
+
+给定`RTCRtpReceiver` *receiver, msids, addList, removeList* ，为了**设置关联的远程媒体流**，用户代理必须按以下步骤运行：
+
+1. 设 *connection* 为与 *receiver* 相关联的`RTCPeerConnection`对象。
+2. 对 *msids* 中的每个MSID，若之前没有以该`id`在本 *connection* 上创建过`MediaStream`对象，则以该`id`创建一个新的`MediaStream`对象。
+3. 设 *streams* 为在本 *connection* 上以 *msids* 中的各个`id`创建的`MediaStream`对象列表。
+4. 设 *track* 为 *receiver* 的[ReceiverTrack]。
+5. 对于 *receiver* 的[AssociatedRemoteMediaStreams]中的每个流，若它尚未存在于 *streams* 中，则将它连同 *track* 作为一对，加入 *removeList* 。
+6. 对于 *streams* 中的每个流，若它尚未存在于 *receiver* 的[AssociatedRemoteMediaStreams]中，则将它连同 *track* 作为一对，加入 *addList* 。
+7. 将 *receiver* 的[AssociatedRemoteMediaStreams]槽中内容赋给 *streams* 。
+
+### 5.2 `RTCRtpSender`接口
+
+`RTCRtpSender`接口允许应用控制一个`MediaStreamTrack`如何被编码并被发送至远程对等端。当一个`RTCRtpSender`对象的`setParameters`方法被调用时，编码会以合适的方式被改变。
+为了用现有的MediaStreamTrack对象 *track*，字符串 *kind* ，MediaStream对象列表 *streams* 以及可选的`RTCRtpEncodingParameters`对象列表 *sendEncodings* **创建一个RTCRtpSender对象**，运行以下步骤：
+
+1. 设 *sender* 为一个新`RTCRtpSender`对象。
+2. *sender* 内部创建[SenderTrack]槽，并初始化为 *track* 。
+3. *sender* 内部创建[SenderTransport]槽，并初始化为`null`。
+4. *sender* 内部创建[Dtmf]槽，并初始化为`null`。
+5. 若 *kind* 值为`audio`，则创建一个`RTCDTMFSender`对象 *dtmf* ，并将其[Dtmf]槽设为 *dtmf* 。
+6. *sender* 内部创建[SenderRtcpTransport]槽，并初始化为`null`。
+7. *sender* 内部创建[AssociatedMediaStreamIds]槽，代表与 *sender* 相关联的MediaStream对象的`id`列表。如[JSEP 5.2.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.1)所述，当在SDP中代表 *sender* 时，[AssociatedMediaStreamIds]槽会被使用。
+8. 设 *sender* 的[AssociatedMediaStreamIds]槽为一个空集合。
+9. 对于 *streams* 中的每个 *stream* ，若 *stream.id* 不存在于[AssociatedMediaStreamIds]槽，则将它添加进去。
+10. *sender* 内部创建[SendEncoding]槽，代表`RTCRtpEncodingParameters`字典列表。
+11. 若将 *sendEncodings* 作为本算法的输入，且它非空，则将[SendEncodings]槽设为 *sendEncodings* 。否则，将槽的内容设为只包含一个`RTCRtpEncodingParameters`对象的列表，其`active`成员为`true`。
+12. *sender* 内部创建[LastReturnedParameters]槽，它将被用于匹配`getParameters`和`setParameters`事务。
+13. 返回 *sender* 。
+
+```webidl
+[Exposed=Window]
+interface RTCRtpSender {
+  readonly attribute MediaStreamTrack? track;
+  readonly attribute RTCDtlsTransport? transport;
+  readonly attribute RTCDtlsTransport? rtcpTransport;
+  static RTCRtpCapabilities? getCapabilities(DOMString kind);
+  Promise<void> setParameters(RTCRtpSendParameters parameters);
+  RTCRtpSendParameters getParameters();
+  Promise<void> replaceTrack(MediaStreamTrack? withTrack);
+  void setStreams(MediaStream... streams);
+  Promise<RTCStatsReport> getStats();
+};
+```
+
+**属性：**
+
+-  MediaStreamTrack类型的`track`，只读，可空：`track`属性是与`RTCRtpSender`对象关联的媒体轨。如果`track`已结束或它的输出被关闭（例如，媒体轨被关闭或静音），`RTCRtpSender`必须发送静音（音频），黑帧（视频）或其他不携带信息的等效内容。在视频的场景下，`RTCRtpSender`应该每秒发送一个黑帧。如果`track`为空，则`RTCRtpSender`不发送。请求此属性时，该属性必须返回[SenderTrack]槽的值。
+-  RTCDtlsTransport类型的`transport`，只读，可空：`transport`属性是从`track`以RTP包形式发出的媒体数据的传输通道。在构造`RTCDtlsTransport`对象之前，`transport`属性为空。当使用捆绑，多个`RTCRtpSenders`对象将共享同一个`transport`并在此传输通道上发送RTP/RTCP。请求此属性时，该属性必须返回[SenderTransport]槽的值。
+-  RTCDtlsTransport类型的`rtcpTransport`，只读，可空：`rtcpTransport`属性是RTCP发送与接收的传输通道。在构造`RTCDtlsTransport`对象之前，`rtcpTransport`属性为空。当使用RTCP多路复用（或使用捆绑，捆绑用到了RTCP多路复用），`rtcpTransport`将为`null`，RTP和RTCP数据都会在`transport`指定的传输通道上流动。请求此属性时，该属性必须返回[SenderRtcpTransport]槽的值。
+
+**方法：**
+
+- *getCapabilities*，静态：`getCapabilities()`方法返回最乐观的系统功能视图，用于发送给定类型的媒体数据。它不保留任何资源，端口或其他状态，但旨在提供一种方法来发现浏览器的功能类型，包括可能支持的编解码器。用户代理必须支持`audio`和`video`的两种类型。如果系统没有与`kind`参数值表示的类型相对应的功能，则`getCapabilities`返回`null`。<br>  这些功能通常在设备上提供持久的跨源信息，从而增加了应用程序的指纹表面。在隐私敏感的上下文中，浏览器可以考虑暂缓操作，例如仅报告功能的公共子集。（这是一个指纹向量。）
+- *setParameters*：
