@@ -1620,9 +1620,217 @@ dictionary RTCRtpParameters {
 };
 ```
 
-`RTCRtpParameters`字典成员：
+`RTCRtpParameters`字典成员
+
+- sequence<RTCRtpHeaderExtensionParameters>类型的`headerExtensions`，必需项：一个包含RTP头部拓展参数的序列。该参数为只读参数。
+- RTCRtcpParameters类型的`rtcp`，必需项：RTCP使用的参数。该参数为只读参数。
+- sequence<RTCRtpCodecParameters>类型的`codecs`，必需项：一个包含`RTCRtpSender`可选的媒体编解码器的序列，这些编解码器同样也是RTX，RED，FEC机制的条目。对于启用RTX重传的每个媒体编解码器，在编解码器数组`codec[]`中会有一个带有`mimeType`属性的条目，该条目指示了通过"audio/rtx"重传还是通过"video/rtx"重传，该条目还具有`sdpFmtpLine`属性（提供"apt"参数和"rtx-time"参数）。该参数是只读参数。
+
+#### 5.2.2 `RTCRtpSendParameters`字典
+
+```webidl
+dictionary RTCRtpSendParameters : RTCRtpParameters {
+    required DOMString                          transactionId;
+    required sequence<RTCRtpEncodingParameters> encodings;
+             RTCDegradationPreference           degradationPreference = "balanced";
+};
+```
+
+`RTCRtpSendParameters`字典成员：
 
 - DOMString类型的`transcationId`，必需项：最新应用的参数的唯一标识符。确保只能基于先前的`getParameters`调用`setParameters`，并且没有干预更改。该参数为只读参数。
 - sequence<RTCRtpEncodingParameters>类型的`encodings`，必需项：一个包含RTP媒体编码参数的序列。
 - RTCDegradationPreference类型的`degradationPreference`，缺省值为`"balanced"`：当带宽被限制，且`RtpSender`需要在降低分辨率和降低帧率之间做出选择，`degradationPreference`表示哪项是首选。
 - RTCPriorityType类型的`priority`，缺省值为`"low"`：表示编码的优先级。它在[RTCWEB-TRANSPORT](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-TRANSPORT)第四节被定义。
+
+#### 5.2.3 `RTCRtpReceiveParameters`字典
+
+```webidl
+dictionary RTCRtpReceiveParameters : RTCRtpParameters {
+    required sequence<RTCRtpDecodingParameters> encodings;
+};
+```
+
+`RTCRtpReceiveParameters`字典成员：
+
+- sequence<RTCRtpDecodingParameters>类型的`encodings`，必需项：一个包含传入的RTP媒体编码信息的序列。
+
+> 风险等级2：支持`RTCRtpReceiveParameters`的`encodings`属性被标记为是有风险的特性，因为实现者对实现方式没有明确的承诺。
+
+#### 5.2.4 `RTCRtpCodingParameters`字典
+
+```webidl
+dictionary RTCRtpCodingParameters {
+    DOMString rid;
+};
+```
+
+`RTCRtpCodingParameters`字典成员：
+
+- DOMString类型的`rid`：如果被设置了，该RTP编码会随着RID头部拓展一起被发送（[JSEP 5.2.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.1)）。RID不能被`setParameters`调用修改。它只能被设置，或者在发送端被`addTransceiver`调用修改。该参数为只读参数。
+
+#### 5.2.5 `RTCRtpDecodingParameters`字典
+
+```webidl
+dictionary RTCRtpDecodingParameters : RTCRtpCodingParameters {
+};
+```
+
+#### 5.2.6 `RTCRtpEncodingParameters`字典
+
+```webidl
+dictionary RTCRtpEncodingParameters : RTCRtpCodingParameters {
+    octet           codecPayloadType;
+    RTCDtxStatus    dtx;
+    boolean         active = true;
+    RTCPriorityType priority = "low";
+    unsigned long   ptime;
+    unsigned long   maxBitrate;
+    double          maxFramerate;
+    double          scaleResolutionDownBy;
+};
+```
+
+`RTCRtpEncodingParameters`字典成员：
+
+- octet类型的`codecPayloadType`：被用于选择一个编解码器发送。必须从`RTCRtpParameters`的`codec`成员中引用有效内容类型。如果未被设置，实现将根据其默认策略选择编解码器。
+- RTCDtxStatus类型的`dtx`：只有当发送端的类型`kind`为`"audio"`时才使用此成员。它表示是否使用不连续传输。将其设置为`disabled`会关闭不连续传输。将其设置为`enabled`会在协商时（通过编解码器指定的参数或通过协商CN编解码器）打开不连续传输; 如果没有协商（例如将`voiceActivityDetection`设为`false`），则无论`dtx`的值是什么，都会关闭不连续操作，即使检测到静音也会发送媒体数据。
+- boolean类型的`active`，缺省值为`true`：表示正在活跃地发送此编码。 将其设置为`false`会导致不再发送此编码。 将其设置为`true`会导致发送此编码。
+- RTCPriorityType类型的`priority`，缺省值为`"low"`：表示当前编码的优先级。这在[RTCWEB-TRANSPORT](https://www.w3.org/TR/webrtc/#bib-RTCWEB-TRANSPORT)第四节中规定。
+- unsigned long类型的`ptime`：如果该成员存在，则表示此编码的数据包所代表的媒体的首选持续时间（以毫秒为单位）。通常仅与音频编码有关。如果可能，用户代理必须使用此持续时间，否则使用最接近的可用持续时间。如[JSEP 5.10](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.10)中所述，该值必须优先于远程描述中的任何`"ptime"`属性。注意，如[RFC4566](https://www.w3.org/TR/webrtc/#bib-RFC4566)第6节中所述，用户代理必须仍然遵守所有`"maxptime"`属性施加的约束。
+- unsigned long类型的`maxBitrate`：如果该成员存在，则表示可用于发送此编码的最大比特率。编码还可能受到除了这里指定的最大值之外的其他限制（例如每次传输/每次会话中的`maxFramerate`带宽限制）的限制。 `maxBitrate`的计算方法与[RFC3890](https://www.w3.org/TR/webrtc/#bib-RFC3890)第6.2.2节中定义的传输独立应用程序特定最大值（TIAS）带宽相同，后者不计算IP/TCP/UDP等其他传输层协议所需的最大带宽。
+- double类型的`maxFramerate`：如果该成员存在，则表示可用于发送此编码的最大帧率，即每秒的帧数。
+- double类型的`scaleResolutionDownBy`：该成员仅在发送端的类型`kind`为`"video"`时才会存在。在发送之前，视频的分辨率将按给定值按比例缩小。例如，如果值为2.0，则视频将在每个维度中按比例缩小2倍，从而发送大小为四分之一的视频。如果值为1.0，则视频不受影响。该值必须大于或等于1.0。默认情况下，发送端不会应用任何缩放（即`scaleResolutionDownBy`为1.0）。
+
+#### 5.2.7 `RTCDtxStatus`枚举
+
+```webidl
+enum RTCDtxStatus {
+    "disabled",
+    "enabled"
+};
+```
+
+`RTCDtxStatus`枚举值描述：
+
+- disabled：关闭不连续传输。
+- enabled：如果协商发生，则启动连续传输。
+
+#### 5.2.8 `RTCDegradationPreference`枚举
+
+```webidl
+enum RTCDegradationPreference {
+    "maintain-framerate",
+    "maintain-resolution",
+    "balanced"
+};
+```
+
+`RTCDegradationPreference`枚举值描述：
+
+- maintain-framerate：降低分辨率以保持帧率。
+- maintain-resolution：降低帧率以保持分辨率。
+- balanced：平衡地降低帧率和分辨率。
+
+#### 5.2.9 `RTCRtcpParameters`字典
+
+```webidl
+dictionary RTCRtcpParameters {
+    DOMString cname;
+    boolean   reducedSize;
+};
+```
+
+`RTCRtcpParameters`字典成员：
+
+- DOMString类型的`cname`：RTCP（如SDES消息）使用的规范名称（CNAME）。该参数为只读参数。
+- boolean类型的`reducedSize`：若为`true`，表示配置后的RTCP裁剪尺寸（[RFC5506](https://www.w3.org/TR/webrtc/#bib-RFC5506)），若为`false`，表示[RFC3550](https://www.w3.org/TR/webrtc/#bib-RFC3550)中指定的复合RTCP。
+
+#### 5.2.10 `RTCRtpHeaderExtensionParameters`字典
+
+```webidl
+dictionary RTCRtpHeaderExtensionParameters {
+    required DOMString      uri;
+    required unsigned short id;
+             boolean        encrypted = false;
+};
+```
+
+`RTCRtpHeaderExtensionParameters`字典成员：
+
+- DOMString类型的`uri`，必需项：如[RFC5285](https://www.w3.org/TR/webrtc/#bib-RFC5285)中定义，表示RTP头部扩展的URI。只读参数。
+- unsigned short类型的`id`，必需项：放置在RTP包中标识头部扩展的值。只读参数。
+- boolean类型的`encrypted`：表示头部扩展是否被加密。只读参数。
+
+> 注意：`RTCRtpHeaderExtensionParameters`字典使应用程序能够确定是否配置了头部扩展，使得可以在`RTCRtpSender`或`RTCRtpReceiver`中使用。对于一个`RTCRtpTransceiver`收发器，应用程序不必解析SDP就可以确定头部扩展中的"direction"参数（在[RFC5285](https://www.w3.org/TR/webrtc/#bib-RFC5285)中定义），如下所示：1) sendonly：头部扩展只包含在`transceiver.sender.getParameters().headerExtensions`。<br>  2) recvonly：头部扩展只包含在`transceiver.receiver.getParameters().headerExtensions`。<br>  3) sendrecv：头部扩展同时包含在`transceiver.sender.getParameters().headerExtensions`和`transceiver.receiver.getParameters().headerExtensions`。<br>  4) inactive：头部扩展均不包含在`transceiver.sender.getParameters().headerExtensions`和`transceiver.receiver.getParameters().headerExtensions`。
+
+#### 5.2.11 `RTCRtpCodecParameters`字典
+
+```webidl
+dictionary RTCRtpCodecParameters {
+    required octet          payloadType;
+    required DOMString      mimeType;
+    required unsigned long  clockRate;
+             unsigned short channels;
+             DOMString      sdpFmtpLine;
+};
+```
+
+`RTCRtpCodecParameters`字典成员：
+
+- octet类型的`payloadType`：被用于标识该编解码器的RTP有效内容类型。只读参数。
+- DOMString类型的`mimeType`：编解码器的MIME媒体类型/子类型。[IANA-RTP-2](https://www.w3.org/TR/webrtc/#bib-IANA-RTP-2)中罗列了有效的媒体类型/子类型。只读参数。
+- unsigned long类型的`clockRate`：以赫兹表示的编解码器时钟速率。只读参数。
+- unsigned short类型的`channels`：当该成员存在时，表示通道的数量（mono=1, stereo=2）。只读参数。
+- DOMString类型的`sdpFmtpLine`：如果存在，如[JSEP 5.8](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.8)所定义，表示SDP中对应于编解码器的"a = fmtp"行中的"format specific parameters"字段。对于`RTCRtpSender`，这些参数来自远程描述，对于`RTCRtpReceiver`，它们来自本地描述。只读参数。
+
+#### 5.2.12 `RTCRtpCapabilities`字典
+
+```webidl
+dictionary RTCRtpCapabilities {
+    required sequence<RTCRtpCodecCapability>           codecs;
+    required sequence<RTCRtpHeaderExtensionCapability> headerExtensions;
+};
+```
+
+`RTCRtpCapabilities`字典成员：
+
+- sequence<RTCRtpCodecCapability>类型的`codecs`，必需项：支持的媒体编解码器以及RTX，RED和FEC机制的条目。`sdpFmtpLine`不存在时，在编解码器数组`codecs []`中只有一个条目用于通过RTX进行重传。
+- sequence<RTCRtpHeaderExtensionCapability>类型的`headerExtensions`，必需项：支持的RTP头部扩展。
+
+#### 5.2.13 `RTCRtpCodecCapability`字典
+
+```webidl
+dictionary RTCRtpCodecCapability {
+    required DOMString      mimeType;
+    required unsigned long  clockRate;
+             unsigned short channels;
+             DOMString      sdpFmtpLine;
+};
+```
+
+`RTCRtpCodecCapability`字典成员：
+`RTCRtpCodecCapability`字典提供了关于编解码器能力的信息。只有在生成的SDP邀请中可以利用不同有效载荷类型的能力组合会被提供。例如：
+
+1. 两个H.264/AVC编解码器，分别用于两个支持的分组模式。
+2. 两个不同时钟速率的CN编解码器。
+
+- DOMString类型的`mimeType`，必需项：编解码器的MIME媒体类型/子类型。[IANA-RTP-2](https://www.w3.org/TR/webrtc/#bib-IANA-RTP-2)中罗列了有效的媒体类型/子类型。
+- unsigned long类型的`clockRate`，必需项：以赫兹表示的编解码器时钟速率。
+- unsigned short类型的`channels`：如果存在，则表示通道最大数（mono=1, stereo=2）。
+- DOMString类型的`sdpFmtpLine`：表示SDP中对应于编解码器的"a = fmtp"行中的"format specific parameters"字段。
+
+#### 5.2.14 `RTCRtpHeaderExtensionCapability`字典
+
+```webidl
+dictionary RTCRtpHeaderExtensionCapability {
+    DOMString uri;
+};
+```
+
+`RTCRtpHeaderExtensionCapability`字典成员：
+
+- DOMString类型的`uri`：如[RFC5285](https://www.w3.org/TR/webrtc/#bib-RFC5285)中定义，表示RTP头部扩展的URI。
+
+### 5.3 `RTCRtpReceiver`接口
+
