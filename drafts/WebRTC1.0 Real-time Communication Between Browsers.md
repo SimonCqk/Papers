@@ -1523,4 +1523,106 @@ interface RTCRtpSender {
 **方法：**
 
 - *getCapabilities*，静态：`getCapabilities()`方法返回最乐观的系统功能视图，用于发送给定类型的媒体数据。它不保留任何资源，端口或其他状态，但旨在提供一种方法来发现浏览器的功能类型，包括可能支持的编解码器。用户代理必须支持`audio`和`video`的两种类型。如果系统没有与`kind`参数值表示的类型相对应的功能，则`getCapabilities`返回`null`。<br>  这些功能通常在设备上提供持久的跨源信息，从而增加了应用程序的指纹表面。在隐私敏感的上下文中，浏览器可以考虑暂缓操作，例如仅报告功能的公共子集。（这是一个指纹向量。）
-- *setParameters*：
+- *setParameters*：`setParameters`方法更新媒体轨`track`的编码与传输方式。<br>  当`setParameters`方法被调用，用户代理必须按以下步骤运行：<br>
+    1. 设 *parameters* 为方法的第一个参数。
+    2. 设 *sender* 为调用此方法的`RTCRtpSender`对象。
+    3. 设 *transceiver* 为与 *sender* 关联的`RTCRtpTransceiver`对象（sender即transceiver中的[Sender]槽）。
+    4. 如果 *transceiver* 的[Stopped]槽值为`true`，以一个新建的`InvalidStateError`拒绝此promise。
+    5. 如果 *sender* 内部的[LastReturnedParameters]槽为空，以一个新建的`InvalidStateError`拒绝此promise.
+    6. 按以下步骤验证 *parameter* 合法性：
+        1. 设 *encodings* 为`parameter.encodings`。
+        2. 设 *codec* 为`parameters.codecs`。
+        3. 设 *N* 为*sender*内部的[SendEncodings]槽中存储的`RTCRtpEncodingParameters`对象数量。
+        4. 如果以下任一条件被满足，则以一个新建的`InvalidModificationError`拒绝promise并返回：
+            1. `encodings.length`与N不相等。
+            2. *encodings* 被重新排序。
+            3. *parameter* 中的任何参数都被标记为**只读参数** （例如RID），且某一参数的值与 *sender* 的[LastReturnedParameters]槽中对应参数的值不相同。注意，这同样适用于 *transactionId* 。
+        5. 确认 *encodings* 中的每个`scaleResolutionDownBy`值都大于等于1.0。如果任一`scaleResolutionDownBy`不满足本需求，则以一个新建的`RangeError`拒绝promise并返回。
+        6.  确认 *encodings* 中的每个`maxFramerate`值都大于等于0.0。如果任一`maxFramerate`不满足本需求，则则以一个新建的`RangeError`拒绝promise并返回。
+        7.  对于0到编码数量范围中的每个值i，0到编解码器数量范围中的每个值j，检查`encodings[i].codecPayloadType`（如果已设置）是否与`codec[j].payloadType`相对应。如果没有对应关系，或者`codec[j] .mimeType`的MIME子类型部分等于`"red", "cn", "telephone-event", "rtx"`或前向纠错编解码器（`"ulpfec"或"flexfec"`），则以一个新建的`InvalidAccessrror`拒绝promise。
+    7. 创建一个新的promise对象 *p* 。
+    8. 并行地用 *parameters* 配置媒体栈，以发送 *sender* 的[SenderTrack]中的数据。
+        1. 如果用 *parameters* 成功配置了媒体栈，则将包含以下步骤的任务加入操作队列：
+            1. 将 *sender* 内部的[LastReturnedParameters]槽置空。
+            2. 将 *sender* 内部的[SendEncodings]槽设为`parameters.encodings`。
+            3. 用`undefined`解析 *p* 。
+        2. 如果配置过程出现了错误，则将包含以下步骤的任务加入操作队列：
+            1. 如果是因为硬件资源不可用而发生错误，则以一个新建的`RTCError`拒绝 *p* ，并将其`errorDetail`设为"hardware-encoder-not-available"，然后终止步骤。
+            2. 如果是因为硬件编码器不支持 *parameters* 而发生错误，则以一个新建的`RTCError`拒绝 *p* ，并将其`errorDetail`设为"hardware-encoder-error"，然后终止步骤。
+            3. 对于其他的错误，以一个新建的`OperationError`拒绝 *p* 。
+    9. 返回 *p* 。
+   如果应用程序通过`codecPayloadType`选择编解码器，并且此编解码器从后续的邀请/应答协商中被删除了，那么在下一次调用`getParameters`方法时将清空`codecPayloadType`，并且实现将回退到其默认编解码器选择策略，直到选择了新的编解码器。<br>  `setParameters`不会导致SDP重新协商，只能用于更改媒体栈在由邀请/应答协商的信封内发送或接收的内容。 `RTCRtpSendParameters`字典中的属性旨在不启用本特性，因此`cname`等属性是只读的，无法被更改。其他的，如比特率使用`maxBitrate`等限制进行控制，用户代理需要确保它不超过`maxBitrate`指定的最大比特率，同时确保它满足别处指定的比特率限制，例如SDP。
+- *getParameters*：`getParameters()`方法返回`RCTRtpSender`对象当前持有的控制媒体轨`track`的编码与传输方式的参数。<br>  当`getParameters`被调用，`RTCRtpSendParameters`字典按以下流程构建：
+    - `transactionId`被设为一个新的唯一标识符，用于将本次`getParameters`调用与将来可能发生的`setParameters`调用进行匹配。
+    - `encodings`被设为内部[SendEncodings]槽的值。
+    - `headerExtensions`序列根据已协商的发送头部扩展名进行填充。
+    - `codec`序列基于已协商用于发送的编解码器以及用户代理当前能够发送的编解码器进行填充。在协商完成之前，`codec`序列为空。
+    - `rtcp.cnmae`被设为与其关联的`RTCPeerConnection`对象的CNAME。如果已经达成了裁剪发送RTCP的协商，则`rtcp.reducedSize`为`true`，否则为`false`。
+    - `degradationPreference` 被设为传入`setParameters`的最新值，如果`setParameters`从未被调用，则为默认值"balanced"。
+    
+    返回的`RTCRtpSendeParameters`字典必须被保存在`RTCRtpSender`对象的[LastReturnedParameters]槽中。<br>  `getParameters`可以以下的方式，和`setParameters`配合使用来改变参数：
+
+    ```js
+        async function updateParameters() {
+        try {
+            const params = sender.getParameters();
+            // ... make changes to parameters
+            params.encodings[0].active = false;
+            await sender.setParameters(params);
+        } catch (err) {
+            console.error(err);
+        }
+    }
+    ```
+
+    调用`setParamters`之后，后续的`getParameters`调用叫返回修改后的参数集合。
+- *replaceTrack*：不经过协商，尝试用另一个已有的媒体轨（或一个空轨）替代当前`RTCRtpSender`中的媒体轨`track`。<br>  当`replaceTrack`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *sender* 为调用此`replaceTrack`方法的`RTCRtpSender`对象。
+    2. 设 *transceiver* 为与 *sender* 关联的`RTCRtpTransceiver`对象。
+    3. 设 *connection* 为与 *sender* 关联的`RTCPeerConnection`对象。
+    4. 设 *withTrack* 为此方法的参数。
+    5. 如果`withTrack`非空且`withTrack.kind`与 *transceiver* 的收发器类型不同，则以一个新创建的`TypeError`拒绝promise并返回。
+    6. 将包含以下步骤的任务加入 *connection* 的操作队列，并返回执行结果：
+        1. 如果 *transceiver* 的[Stopped]的槽为`true`，则以一个新创建的`InvalidStateError`拒绝promise并返回。
+        2. 创建一个新promise对象 *p* 。
+        3. 如果 *transceiver* 的[CurrentDirection]槽值为`"sendrecv"`或`"sendonly"`，则设 *sending* 为`true`，否则为`false`。
+        4. 并行运行以下步骤：
+            1. 若 *sending* 为`true`且 *withTrack* 为`null`，发送端停止发送。
+            2. 若 *sending* 为`true`且 *withTrack* 不为`null`，确定发送端是否可以立即发送 *withTrack* 而不违反发送端已经协商的信封，如果不能，则以一个新创建的`InvalidModificationError`拒绝promise，并终止后续步骤。
+            3. 若 *sending* 为`true`且 *withTrack* 不为`null`，则发送方无缝切换到发送 *withTrack* ，而不是发送现有的媒体轨。
+            4. 将包含以下步骤的任务加入队列：
+                1. 如果 *transceiver* 的[Stopped]槽值为`true`，终止后续步骤。
+                2. 设 *sender* 的`track`属性为 *withTrack* 。
+                3. 以`undefined`解析 *p* 。
+            5. 返回 *p* 。
+    **注意：**更改尺寸和/或帧速率也许不需要协商。需要协商的场景包含以下：<br>  1) 如[RFC6236](http://w3c.github.io/webrtc-pc/#bib-RFC6236)中描述的，将分辨率更改为协商好的imageattr范围之外的值。<br>  2) 将帧速率更改为导致编解码器超出阻塞速率的值。<br>  3) 视频轨与原始格式和预编码格式不同。<br>  4) 具有不同通道数的音轨。<br>  5) 同样编码的源（通常是硬件编码器）可能无法提供支持协商的编解码器; 同样，软件源可能不会实现支持编码源协商的编解码器。
+- *setStreams*：设置与该发送端媒体轨相关联的`MediaStreams`。<br>  当`setStreams`方法被调用，用户代理必须按以下步骤运行：<br>
+    1. 设 *sender* 为调用此方法的`RTCRtpSender`对象。
+    2. 设 *connection* 为此方法调用发生的`RTCPeerConnection`对象。
+    3. 如果 *connection* 的[IsClosed]槽为`true`，则抛出一个`InvalidStateError`。
+    4. 设 *streams* 为从方法参数中构建的`MediaStream`对象列表，如果没有参数，那么它为一个空列表。
+    5. 对于 *streams* 中的每个 *stream* ，如果 *stream.id* 尚未存在于[AssociatedMediaStreamIds]，则将它加入。
+    6. 更新 *connection* 的协商标记位。
+- *getStats*：仅收集该发送端的状态信息，并异步报告结果。<br>  当`getStats()`方法被调用，用户代理必须按以下步骤运行：<br>
+    1. 设 *selector* 为调用此方法的`RTCRtpSender`对象。
+    2. 设 *p* 为新创建的promise，并行地运行以下步骤：
+        1. 根据[状态选择算法](http://w3c.github.io/webrtc-pc/#dfn-stats-selection-algorithm)收集选择器指示的状态数据。
+        2. 将包含收集到状态信息的`RTCStatsReport`对象用来解析 *p* 。
+    3. 返回 *p* 。
+
+#### 5.2.1 `RTCRtpParameters`字典
+
+```webidl
+dictionary RTCRtpParameters {
+  required sequence<RTCRtpHeaderExtensionParameters> headerExtensions;
+  required RTCRtcpParameters rtcp;
+  required sequence<RTCRtpCodecParameters> codecs;
+};
+```
+
+`RTCRtpParameters`字典成员：
+
+- DOMString类型的`transcationId`，必需项：最新应用的参数的唯一标识符。确保只能基于先前的`getParameters`调用`setParameters`，并且没有干预更改。该参数为只读参数。
+- sequence<RTCRtpEncodingParameters>类型的`encodings`，必需项：一个包含RTP媒体编码参数的序列。
+- RTCDegradationPreference类型的`degradationPreference`，缺省值为`"balanced"`：当带宽被限制，且`RtpSender`需要在降低分辨率和降低帧率之间做出选择，`degradationPreference`表示哪项是首选。
+- RTCPriorityType类型的`priority`，缺省值为`"low"`：表示编码的优先级。它在[RTCWEB-TRANSPORT](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-TRANSPORT)第四节被定义。
