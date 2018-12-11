@@ -1912,4 +1912,36 @@ dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {
 
 `RTCRtpSynchronizationSource`字典成员：
 
-- boolean类型的`voiceActivityFlag`：仅适用于音频接收端。表示该源播放的最后一个RTP数据包包含语音活动（true）还是不包含（false）。 如[RFC6464]第4节所述，如果头部扩展不存在，或者对等端通过将"vad"扩展属性设置为"off"来表示它没有使用V位，则`voiceActivityFlag`将不存在。
+- boolean类型的`voiceActivityFlag`：仅适用于音频接收端。表示该源播放的最后一个RTP数据包是否包含语音活动（true or false）。 如[RFC6464]第4节所述，如果头部扩展不存在，或者对等端通过将"vad"扩展属性设置为"off"来表示它没有使用V位，则`voiceActivityFlag`将不存在。
+
+### 5.4 `RTCRtpTransceiver`接口
+
+`RTCRtpTransceiver`接口表示共享公共`mid`的`RTCRtpSender`和`RTCRtpReceiver`的组合。如[JSEP 3.4.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-3.4.1)中定义的，如果`RTCRtpTransceiver`的`mid`属性非空，则称其与媒体描述**相关联**，否则不相关。概念上说，一个被关联的收发器代表上一次会话描述中应用的收发器。<br>  `RTCRtpReceiver`的 **收发器类型** 在与之关联的`RTCRtpReceiver`对象持有的`MediaStream`对象中定义。<br>  利用一个现有的`RTCRtpReceiver`对象 *receiver* ，`RTCRtpSender`对象 *sender* ，`RTCRtpTransceiverDirection`值 *direction* ，按以下步骤创建一个`RTCRtpTransceiver`对象：
+
+1. 设 *transceiver* 为一个新`RTCRtpTransceiver`对象。
+2. 将 *transceiver* 的[Sender]槽初始化为 *sender* 。
+3. 将 *transceiver* 的[Receiver]槽初始化为 *receiver* 。
+4. 将 *transceiver* 的[Stopped]槽初始化为`false`。
+5. 将 *transceiver* 的[Direction]槽初始化为 *direction* 。
+6. 将 *transceiver* 的[Receptive]槽初始化为`fasle`。
+7. 将 *transceiver* 的[CurrentDirection]槽初始化为`null`。
+8. 将 *transceiver* 的[FiredDirection]槽初始化为`null`。
+9. 返回 *transceiver* 。
+
+> 注意：创建一个收发器并不会创建底层的`RTCDtlsTransport`和`RTCIceTransport`对象。这一过程只会作为"设置一个`RTCSessionDescription`"的子步骤发生。
+
+```webidl
+[Exposed=Window]
+interface RTCRtpTransceiver {
+    readonly attribute DOMString?                  mid;
+    [SameObject]
+    readonly attribute RTCRtpSender                sender;
+    [SameObject]
+    readonly attribute RTCRtpReceiver              receiver;
+    readonly attribute boolean                     stopped;
+             attribute RTCRtpTransceiverDirection  direction;
+    readonly attribute RTCRtpTransceiverDirection? currentDirection;
+    void stop();
+    void setCodecPreferences(sequence<RTCRtpCodecCapability> codecs);
+};
+```
