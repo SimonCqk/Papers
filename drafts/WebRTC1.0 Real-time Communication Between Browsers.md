@@ -1517,7 +1517,7 @@ interface RTCRtpSender {
 **属性：**
 
 -  MediaStreamTrack类型的`track`，只读，可空：`track`属性是与`RTCRtpSender`对象关联的媒体轨。如果`track`已结束或它的输出被关闭（例如，媒体轨被关闭或静音），`RTCRtpSender`必须发送静音（音频），黑帧（视频）或其他不携带信息的等效内容。在视频的场景下，`RTCRtpSender`应该每秒发送一个黑帧。如果`track`为空，则`RTCRtpSender`不发送。请求此属性时，该属性必须返回[SenderTrack]槽的值。
--  RTCDtlsTransport类型的`transport`，只读，可空：`transport`属性是从`track`以RTP包形式发出的媒体数据的传输通道。在构造`RTCDtlsTransport`对象之前，`transport`属性为空。当使用捆绑，多个`RTCRtpSenders`对象将共享同一个`transport`并在此传输通道上发送RTP/RTCP。请求此属性时，该属性必须返回[SenderTransport]槽的值。
+-  RTCDtlsTransport类型的`transport`，只读，可空：`transport`属性是从`track`以RTP分组形式发出的媒体数据的传输通道。在构造`RTCDtlsTransport`对象之前，`transport`属性为空。当使用捆绑，多个`RTCRtpSenders`对象将共享同一个`transport`并在此传输通道上发送RTP/RTCP。请求此属性时，该属性必须返回[SenderTransport]槽的值。
 -  RTCDtlsTransport类型的`rtcpTransport`，只读，可空：`rtcpTransport`属性是RTCP发送与接收的传输通道。在构造`RTCDtlsTransport`对象之前，`rtcpTransport`属性为空。当使用RTCP多路复用（或使用捆绑，捆绑用到了RTCP多路复用），`rtcpTransport`将为`null`，RTP和RTCP数据都会在`transport`指定的传输通道上流动。请求此属性时，该属性必须返回[SenderRtcpTransport]槽的值。
 
 **方法：**
@@ -1758,9 +1758,9 @@ dictionary RTCRtpHeaderExtensionParameters {
 
 `RTCRtpHeaderExtensionParameters`字典成员：
 
-- DOMString类型的`uri`，必需项：如[RFC5285](https://www.w3.org/TR/webrtc/#bib-RFC5285)中定义，表示RTP头部扩展的URI。只读参数。
-- unsigned short类型的`id`，必需项：放置在RTP包中标识头部扩展的值。只读参数。
-- boolean类型的`encrypted`：表示头部扩展是否被加密。只读参数。
+- DOMString类型的`uri`，必需项：如[RFC5285](https://www.w3.org/TR/webrtc/#bib-RFC5285)中定义，表示RTP头部扩展的URI。该参数为只读参数。
+- unsigned short类型的`id`，必需项：放置在RTP分组中标识头部扩展的值。该参数为只读参数。
+- boolean类型的`encrypted`：表示头部扩展是否被加密。该参数为只读参数。
 
 > 注意：`RTCRtpHeaderExtensionParameters`字典使应用程序能够确定是否配置了头部扩展，使得可以在`RTCRtpSender`或`RTCRtpReceiver`中使用。对于一个`RTCRtpTransceiver`收发器，应用程序不必解析SDP就可以确定头部扩展中的"direction"参数（在[RFC5285](https://www.w3.org/TR/webrtc/#bib-RFC5285)中定义），如下所示：1) sendonly：头部扩展只包含在`transceiver.sender.getParameters().headerExtensions`。<br>  2) recvonly：头部扩展只包含在`transceiver.receiver.getParameters().headerExtensions`。<br>  3) sendrecv：头部扩展同时包含在`transceiver.sender.getParameters().headerExtensions`和`transceiver.receiver.getParameters().headerExtensions`。<br>  4) inactive：头部扩展均不包含在`transceiver.sender.getParameters().headerExtensions`和`transceiver.receiver.getParameters().headerExtensions`。
 
@@ -1778,11 +1778,11 @@ dictionary RTCRtpCodecParameters {
 
 `RTCRtpCodecParameters`字典成员：
 
-- octet类型的`payloadType`：被用于标识该编解码器的RTP有效内容类型。只读参数。
-- DOMString类型的`mimeType`：编解码器的MIME媒体类型/子类型。[IANA-RTP-2](https://www.w3.org/TR/webrtc/#bib-IANA-RTP-2)中罗列了有效的媒体类型/子类型。只读参数。
-- unsigned long类型的`clockRate`：以赫兹表示的编解码器时钟速率。只读参数。
-- unsigned short类型的`channels`：当该成员存在时，表示通道的数量（mono=1, stereo=2）。只读参数。
-- DOMString类型的`sdpFmtpLine`：如果存在，如[JSEP 5.8](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.8)所定义，表示SDP中对应于编解码器的"a = fmtp"行中的"format specific parameters"字段。对于`RTCRtpSender`，这些参数来自远程描述，对于`RTCRtpReceiver`，它们来自本地描述。只读参数。
+- octet类型的`payloadType`：被用于标识该编解码器的RTP有效内容类型。该参数为只读参数。
+- DOMString类型的`mimeType`：编解码器的MIME媒体类型/子类型。[IANA-RTP-2](https://www.w3.org/TR/webrtc/#bib-IANA-RTP-2)中罗列了有效的媒体类型/子类型。该参数为只读参数。
+- unsigned long类型的`clockRate`：以赫兹表示的编解码器时钟速率。该参数为只读参数。
+- unsigned short类型的`channels`：当该成员存在时，表示通道的数量（mono=1, stereo=2）。该参数为只读参数。
+- DOMString类型的`sdpFmtpLine`：如果存在，如[JSEP 5.8](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.8)所定义，表示SDP中对应于编解码器的"a = fmtp"行中的"format specific parameters"字段。对于`RTCRtpSender`，这些参数来自远程描述，对于`RTCRtpReceiver`，它们来自本地描述。该参数为只读参数。
 
 #### 5.2.12 `RTCRtpCapabilities`字典
 
@@ -1834,3 +1834,82 @@ dictionary RTCRtpHeaderExtensionCapability {
 
 ### 5.3 `RTCRtpReceiver`接口
 
+`RTCRtpReceiver`接口允许应用程序监视流媒体轨`MediaStreamTrack`的接收情况。
+给定一个表示类别的字符串参数 *kind* ，按以下步骤创建一个 **RTCRtpReceiver** ：
+
+1. 设 *receiver* 为新的`RTCRtpReceiver`对象。
+2. 设 *track* 为新的`MediaStreamTrack`对象（详见[GETUSERMEDIA](http://w3c.github.io/webrtc-pc/#bib-GETUSERMEDIA)）。 *track* 的源是一个由 *receiver* 提供的 **远程源** 。注意 *track.id** 由用户代理生成，且与远程端的媒体轨ID没有任何映射关系。
+3. 将 *track.kind* 初始化为 *kind* 。
+4. 将 *track.label* 初始化为 *kind* 与字符串`"remote "`连接后的结果。
+5. 将 *track.readyState* 初始化为`live`。
+6. 将 *track.muted* 初始化为`true`。查阅[MediaStreamTrack](http://w3c.github.io/webrtc-pc/#mediastreamtrack-network-use)这一节，获得`muted`属性如何反应`MediaStremTrack`接受状态的相关信息。
+7. 将 *receiver* 的[ReceiverTrack]槽初始化为 *track* 。
+8. 将 *receiver* 的[ReceiverTransport]槽初始化为`null`。
+9. 将 *receiver* 的[ReceiverRtcpTransport]槽初始化为`null`。
+10. *receiver* 的[AssociatedRemoteMediaStreams]槽代表与`MediaStreamTrack`对象相关联的`MediaStream`对象的列表，将它初始化空列表。
+11. 返回 *receiver* 。
+
+```webidl
+[Exposed=Window]
+interface RTCRtpReceiver {
+  readonly attribute MediaStreamTrack track;
+  readonly attribute RTCDtlsTransport? transport;
+  readonly attribute RTCDtlsTransport? rtcpTransport;
+  static RTCRtpCapabilities? getCapabilities(DOMString kind);
+  RTCRtpReceiveParameters getParameters();
+  sequence<RTCRtpContributingSource> getContributingSources();
+  sequence<RTCRtpSynchronizationSource> getSynchronizationSources();
+  Promise<RTCStatsReport> getStats();
+};
+```
+
+**属性：**
+
+- MediaStreamTrack类型的`track`，只读：`track`属性代表与`RTCRtpReceiver`对象 *receiver* 相关联的媒体轨。<br>  注意`track.stop()`是最后一步，但克隆后的媒体轨不受影响。`receiver.track.stop()`并不会隐式停止 *receiver* ，因此接收情况的报告还会继续发送。请求读值时，该属性必须返回[ReceiverTrack]槽的值。
+- RTCDtlsTransport类型的`transport`，只读，可空：`transport`属性是以RTP分组的形式接收 *reciver.track* 媒体数据的传输通道。在构造`RTCDtlsTransport`对象之前，`transport`属性为`null`。 使用捆绑时，多个`RTCRtpReceiver`对象将共享同一个传输，并通过同一传输接收RTP和RTCP。<br>  请求读值时，属性必须返回[[ReceiverTransport]]槽的值。
+- RTCDtlsTranport类型的`rtcpTransport`，只读，可空：`rtcpTransport`属性是发送和接收RTCP的传输通道。在构造`RTCDtlsTransport`对象之前，`rtcpTransport`属性为`null`。当使用RTCP多路复用（或捆绑强制执行RTCP多路复用）时，`rtcpTransport`将为`null`，并且RTP和RTCP的流量都将通过传输流动。<br>  请求读值，属性必须返回[ReceiverRtcpTransport]槽的值。
+
+**方法：**
+
+- *getCapabilities* ，静态：`getCapabilities()`方法返回的系统功能视图，用于接收给定类型的媒体。它不保留任何资源，端口或其他状态，但旨在提供一种方法来发现浏览器的功能类型，包括可能支持的编解码器。用户代理必须支持`"audio"`和`"videp"`的 *kind* 值。如果系统没有与 *kind* 值相对应的功能，则`getCapabilities`返回`null`。<br>  这些功能通常在设备上持续提供跨源信息，从而增加了应用程序的指纹表面。 在隐私敏感的上下文中，浏览器可以考虑暂缓操作，例如仅报告功能的公共子集。（这是一个指纹矢量。）
+- *getParameters* ：`getParameters()`方法返回`RTCRtpReceiver`对象的当前参数，来指示`track`如何解码。<br>  当`getParameters`被调用，`RTCRtpReceiveParameters`字典会按以下步骤构造：
+    1. 根据当前远程描述中存在的RID填充`encodings`。
+    2. 根据接收端当前准备接收的头部扩展来填充`headerExtensions`序列。
+    3. 根据接收端当前准备接收的编解码器来填充`codecs`序列。<br>  **注意：** 本地和远程描述都可能影响此编解码器列表。例如，如果提供了三个编解码器，接收端准备好接收每一个编解码器，并通过`getParameters`把它们返回。但是如果远程端点只对其中两个作了应答，则`getParameters`将不再返回缺失的编解码器，因为接收端不再处于准备接收它的状态了。
+    4. 如果接收端正在准备接收裁剪后的RTCP分组，则将`rtcp.reducedSize`设为`true`，否则为`false`。`rtcp.cname`被遗漏。
+- *getContributingSources* ：返回此`RTCRtpReceiver`在过去10秒内收到的每个唯一CSRC标识符的`RTCRtpContributingSource`对象。
+- *getSynchronizationSources* ：返回此`RTCRtpReceiver`在过去10秒内收到的每个唯一SSRC标识符的`RTCRtpSynchronizationSources`对象。
+- *getStats* ：仅收集此接收端的状态信息并异步地报告结果。<br>  当`getStats()`方法被调用，用户代理必须按以下步骤运行：
+    1. *selector* 即调用此方法的`RTCRtpReceiver`对象。
+    2. 设 *p* 为新的promise对象，并行地执行以下步骤：
+        1. 根据[状态信息选择算法](http://w3c.github.io/webrtc-pc/#dfn-stats-selection-algorithm)收集 *selector* 指示地状态信息。
+        2. 用包含收集到的状态信息的`RTCStatsReport`对象解析 *p* 。
+    3. 返回 *p* 。
+
+`RTCRtpContributingSource`和`RTCRtpSynchronizationSource`字典分别包含给定贡献源（CSRC）或同步源（SSRC）的相关信息，包括数据源最近一次贡献数据包的时间。浏览器必须保留前10秒内收到的RTP数据包的信息。 当包含在RTP数据包中的第一个音频或视频帧被传送到`RTCRtpReceiver`的`MediaStreamTrack`进行播出时，用户代理必须将任务加入队列，任务会根据数据包的内容更新`RTCRtpContributingSource`和`RTCRtpSynchronizationSource`字典的相关信息。与SSRC标识符对应的`RTCRtpSynchronizationSource`字典相关的信息每次都会被更新，并且如果RTP分组包含CSRC标识符，还会更新与CSRC标识符对应的`RTCRtpContributingSource`字典相关的信息。
+
+> 注意：如[一致性一节](http://w3c.github.io/webrtc-pc/#conformance)中所述，只要最终结果是等效的，可以用任何方式实现该算法。因此，实现不需要为每个数据包都创建处理任务并加入操作队列。只要最终结果是在单个事件循环中执行得到的，特定`RTCRtpReceiver`返回的所有`RTCRtpSynchronizationSource`和`RTCRtpContributingSource`字典都包含来自RTP流中的单点信息。
+
+```webidl
+dictionary RTCRtpContributingSource {
+  required DOMHighResTimeStamp timestamp;
+  required unsigned long source;
+  double audioLevel;
+};
+```
+
+`RTCRtpContributingSource`成员：
+
+- DOMHighResTimeStamp类型的`timestamp`，必需项：DOMHighResTimeStamp类型[HIGHRES-TIME](http://w3c.github.io/webrtc-pc/#bib-HIGHRES-TIME)的时间戳表示从该源发出的RTP分组中到达的媒体最近的播出时间。时间戳被定义为播放时调用`performance.timeOrigin + performance.now()`得到的值。
+- unsigned long类型的`source`，必需项：贡献源或同步源的CSRC/SSRC标识符。
+- double类型的`audioLevle`：仅适用于音频接收端。 这是一个0...1（线性）之间的值，其中1.0表示0dBov，0表示静音，0.5表示声压等级从0dBov变化到约6dBSPL。<br>  对于CSRC，如果头部扩展存在，则该值必须转化为[RFC6465](http://w3c.github.io/webrtc-pc/#bib-RFC6465)中定义的等级值，否则该成员不存在。<br>  对于SSRC，如果头部扩展存在，则该值必须转化为[RFC6464](http://w3c.github.io/webrtc-pc/#bib-RFC6464)中定义的等级值，否则用户代理必须从音频数据中计算出该值（对于音频接收端，该值一定存在）。<br>  两个RFC都将级别定义为从0到127的整数值，表示相对于系统可能编码的最大信号的负分贝音频电平。因此，0代表系统可能编码的最大声信号，127代表静音。<br>  要将这些值转换为0...1的线性范围，值127将被转换为0，并使用以下公式转换所有其他值：`10^(-rfc_level/20)`。
+
+```webidl
+dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {
+  boolean voiceActivityFlag;
+};
+```
+
+`RTCRtpSynchronizationSource`字典成员：
+
+- boolean类型的`voiceActivityFlag`：仅适用于音频接收端。表示该源播放的最后一个RTP数据包包含语音活动（true）还是不包含（false）。 如[RFC6464]第4节所述，如果头部扩展不存在，或者对等端通过将"vad"扩展属性设置为"off"来表示它没有使用V位，则`voiceActivityFlag`将不存在。
