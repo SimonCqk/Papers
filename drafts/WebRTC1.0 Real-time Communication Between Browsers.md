@@ -2167,4 +2167,22 @@ dictionary RTCDtlsFingerprint {
 > 注意：现有`RTCRtpTransceiver`的ICE重启将由现有的`RTCIceTransport`对象表示，其状态将相应更新，而不是由新对象表示。
 
 当ICE代理指示它开始为`RTCIceTransport`收集一代候选项时，用户代理必须将包含以下步骤的任务加入操作队列：
-1. 
+
+1. 设 *connection* 为与ICE代理相关联的`RTCPeerConnection`对象。
+2. 如果 *connection* 的[IsClosed]槽为`true`，则终止后续步骤。
+3. 设 *transport* 为启动收集候选项时的`RTCIceTransport`对象。
+4. 将 *transport* 的[IceGatherState]槽设为`gathering`。
+5. 在 *transport* 之上触发名为`gatheringstatechange`的时间。
+6. 更新 *connection* 的ICE收集状态。
+
+当ICE代理指示已为`RTCIceTransport`完成一代候选项的收集工作时，用户代理必须将包含以下步骤的任务加入操作队列：
+
+1. 设 *connection* 为与ICE代理关联的`RTCPeerConnection`对象。
+2. 如果 *connection* 的[IsClosed]槽为`true`，则终止后续步骤。
+3. 设 *transport* 为结束候选项收集工作的`RTCIceTransport`对象。
+4. 创建一个新`RTCIceCandidate`对象，命名为 *newCandidate* ，其`sdpMid`和`sdpMLineIndex`值设为与之关联的`RTCIceTransport`的对应值，`usernameFragment`设为收集完一代候选项的用户名片段，`candidate`设为一个空字符串，其他所有可空的成员设为`null`。
+5. 利用`candidate`属性设为 *newCandidate* 的 `RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件。
+6. 如果另一代候选项正在被收集，则终止步骤。 **注意：** 如果在ICE代理仍在收集上一代候选项时开始ICE重启，则可能会发生这种情况。
+7. 将 *transport* 的[IceGatherState]槽设为`complete`。
+8. 在 *transport* 上触发名为`gatheringstatechange`的事件。
+9. 更新 *connection* 的ICE收集状态。
