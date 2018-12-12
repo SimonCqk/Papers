@@ -1933,7 +1933,7 @@ dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {
 ```webidl
 [Exposed=Window]
 interface RTCRtpTransceiver {
-    readonly attribute DOMString?                  mid;
+    readonly attribute DOMString                   mid;
     [SameObject]
     readonly attribute RTCRtpSender                sender;
     [SameObject]
@@ -1945,3 +1945,226 @@ interface RTCRtpTransceiver {
     void setCodecPreferences(sequence<RTCRtpCodecCapability> codecs);
 };
 ```
+
+**属性：**
+
+- DOMString类型的`mid`，只读，可空：如[JSEP 5.2.1&5.3.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.1)所述，`mid`属性是协商好的存在于本地和远程描述中的`mid`值。在协商完成之前，`mid`值为空。在回滚发生之后，该值可能从非空变为空。
+- RTCRtpSender类型的`sender`，只读：`sender`属性将发送的RTP媒体中与mid=`mid`对应的`RTCRtpSender`对象公开。当请求读值时，该属性必须返回[Sender]槽的值。
+- RTCRtpReceiver类型的`receiver`，只读：`receiever`属性表示与mid=`mid`RTP媒体相对应的`RTCRtpReceiver`对象。当请求读值时，该属性必须返回[Receiver]槽的值。
+- boolean类型的`stopped`，只读：`stopped`属性表示此收发器的发送端将不再发送，接收端将不再接收。如果已经调用了`stop`或者设置本地或远程描述导致`RTCRtpTransceiver`被停止，则它将变为`true`。当请求读值时，该属性必须返回[Stopped]槽的值。
+- RTCRtpTransceiverDirection类型的`direction`：如[JSEP 4.2.4](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.2.4)中定义的，`direction`属性表示`createOffer`和`createAnswer`调用时收发器的首选方向。方向的更新不会立即生效，相反的，将来调用`createOffer`和`createAnswer`时会将相应的媒体描述标记为`sendrecv，sendonly，recvonly或inactive`，这定义在[JSEP 5.2.2&5.3.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2.2)。<br>  当请求读值时，该属性必须返回[Direction]槽的值。<br>  当请求写值时，必须按以下步骤运行：
+    1. 设 *transceiver* 为调用此方法的`RTCRtpTransceiver`对象。
+    2. 设 *connection* 为与 *transceiver* 关联的`RTCPeerConnection`对象。
+    3. 若 *connection* 的[IsClosed]槽为`true`，抛出一个`InvalidStateError`错误。
+    4. 若 *transceiver* 的[Stopped]槽位`true`，抛出一个`InvalidStateError`错误。
+    5. 设 *newDirection* 为写函数的参数。
+    6. 若 *newDirection* 与 *transceiver* 的[Direction]槽相同，则终止步骤。
+    7. 将 *transceiver* 的[Direction]槽值设为 *newDirection* 。
+    8. 更新 *connection* 的协商标记位。
+- RTCRtpTransceiverDirection类型的`currentDirection`，只读，可空：如[JSEP 4.2.5](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.2.5)定义，`currentDirection`代表当前协商好的收发器的方向。`currentDirection`的值与`RTCRtpEncodingParameters.active`的值无关，因为两者无因果关系。如果此收发器从未存在于邀请/应答的数据交换过程中，或者收发器已停止，则该值为空。请求读值时，该属性必须返回[CurrentDirection]槽的值。
+
+**方法：**
+
+- *stop* ：不可逆地停止`RTCRtpTransceiver`。此收发器的发送端将不再发送，接收端将不再接收。调用`stop()`会更新与`RTCRtpTransceiver`关联的`RTCPeerConnection`的需要协商标记位。<br>  如[JSEP 4.2.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.2.1)所述，停止收发器将导致将来`createOffer`或`createAnswer`的调用在相应收发器的媒体描述中生成零端口。<br>  **注意：** 如果该方法在应用远程描述与创建应答之间被调用，且该收发器已与打上了"邀请"标签的媒体描述相关联了，则将导致捆绑组中所有其他收发器都停止。为了避免这样的情况发生，我们可以在信令状态为`"stable"`时，在执行后续的邀请/应答数据交换时停止收发器。<br>  当`stop`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *transceiver* 为调用此方法的`RTCRtpTransceiver`对象。
+    2. 设 *connection* 为与 *transceiver* 关联的`RTCPeerConnection`对象。
+    3. 如果 *connection* 的[IsClosed]槽为`true`，则抛出一个`InvalidStateError`。
+    4. 如果 *transceiver* 的[Stopped]槽为`true`，则终止以下步骤。
+    5. 根据下述步骤停止 *transceiver* 。
+    6. 更新 *connection* 的协商标记位。
+    **停止RTCRtpTransceiver**算法如下：
+    1. 设 *sender* 为 *transceiver* 的[Sender]槽。
+    2. 设 *receiver* 为 *transceiver* 的[Receiver]槽。
+    3. 停止 *sender* 发送媒体数据。
+    4. 根据[RFC3550](http://w3c.github.io/webrtc-pc/#bib-RFC3550)， *sender* 向每个RTP流发送一个RTCP BYE信号。
+    5. 停止 *receiver* 接收媒体数据。
+    6. 执行结束 *receiver* 的[ReceiverTrack]槽的步骤。
+    7. 将 *transceiver* 的[Stopped]槽设为`true`。
+    8. 将 *transceiver* 的[Receptive]槽设为`false`。
+    9. 将 *transceiver* 的[CurrentDirection]槽设为`null`。
+- *setCodecPreferences* ：`setCodecPreferences`方法会覆盖用户代理使用的默认编解码器首选项。当使用`createOffer`或`createAnswer`生成会话描述时，用户代理必须按照`codecs`参数中指定的顺序使用指定的编解码器，用于与此`RTCRtpTransceiver`对应的媒体部分。<br>  此方法允许应用程序禁用特定编解码器的协商过程。它还允许应用程序使远程对等端偏好列表中首先出现的编解码器。<br>  对于所有包含此`RTCRtpTransceiver`的`createOffer`和`createAnswer`的调用，编解码器首选项仍然有效，直到再次调用此方法。将`codecs`设置为空序列将使编解码器首选项重置为所有默认值。<br>  传递给`setCodecPreferences`的`codecs`序列只能包含由`RTCRtpSender.getCapabilities(kind)`或`RTCRtpReceiver.getCapabilities(kind)`返回的编解码器，其中`kind`是调用该方法的`RTCRtpTransceiver`的类型。此外，无法修改`RTCRtpCodecCapability`字典成员。如果编解码器不满足这些要求，则用户代理必须抛出`InvalidAccessError`错误。<br>  **注意：** 根据[SDP](http://w3c.github.io/webrtc-pc/#bib-SDP)的建议，`createAnswer`的调用应只包含编解码器首选项和邀请中出现的编解码器的公共子集。例如，如果编解码器首选项为"C, B, A"，但邀请中只提供了"A, B"，则应答中只能包含"B, A"编解码器。但是[JSEP 5.3.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.3.1)允许添加不在邀请中出现的编解码器，因此具体实现可以表现得不一样。
+
+#### 5.4.1 联播功能
+
+通过`RTCPeerConnection`对象的`addTransceiver`方法和`RTCRtpSender`对象的`setParameters`方法提供联播功能。
+`addTransceiver`方法建立 **联播信封** ，其中包括可以发送的最大联播流数量以及编码的顺序。虽然可以使用`setParameters`方法修改单个联播流的特征，但不能更改联播信封。此模型的一个含义是`addTrack`方法无法提供联播功能，因为它不将`sendEncodings`作为参数，因此无法配置`RTCRtpTransceiver`来发送联播。<br>  虽然`setParameters`无法修改[联播信封](http://w3c.github.io/webrtc-pc/#dfn-simulcast-envelope)，但仍可以控制发送流的数量和这些流的特征。利用`setParameters`，可以通过将`active`属性设置为`false`来使联播流处于非活动状态，或者可以通过将`active`属性设置为`true`来重新激活联播流。利用`setParameters`，可以通过修改`maxBitrate`和`maxFramerate`等属性来更改流特性。<br>  此规范未定义如何配置`createOffer`以接收多个RTP编码。但是，当利用能够发送[JSEP]中定义的多个RTP编码的相应远程描述调用`setRemoteDescription`时，`RTCRtpReceiver`可以接收多个RTP编码，并且通过收发器的`receiver.getParameters()`检索的参数将反映协商好的编码。
+
+> 注意：在选择性转发单元（SFU）在用户代理接收的联播流之间切换的情况下，`RTCRtpReceiver`可以接收多个RTP流。如果SFU不重写RTP报头以便在转发之前将切换流安排到单个RTP流中，则`RTCRtpReceiver`将接收来自不同RTP流的分组，每个RTP流具有自己的SSRC和序列号空间。虽然SFU可能仅在任何给定时间转发单个RTP流，但是因为被重新排序，来自多个RTP流的分组可能在接收端混合。因此，配备用于接收多个RTP流的`RTCRtpReceiver`将需要能够正确地对接收的分组进行排序，识别潜在的丢失事件并对它们作出反应。在这种情况下的正确操作是非常重要的，因此对于本规范的实现来说是可选的。
+
+#### 5.4.1.1 编码参数样例
+
+使用编码参数实现联播场景的样例：
+
+```js
+EXAMPLE 4
+// Example of 3-layer spatial simulcast with all but the lowest resolution layer disabled
+var encodings = [
+  {rid: 'f', active: false},
+  {rid: 'h', active: false, scaleResolutionDownBy: 2.0},
+  {rid: 'q', active: true, scaleResolutionDownBy: 4.0}
+];
+
+// Example of 3-layer framerate simulcast with the middle layer disabled
+var encodings = [
+  {rid: 'f', active: true, maxFramerate: 60},
+  {rid: 'h', active: false, maxFramerate: 30},
+  {rid: 'q', active: true, maxFramerate: 15}
+];
+```
+
+#### 5.4.2 "暂停"功能
+
+`direction`和`replaceTrack`两个属性使得开发者可以实现"暂停"场景。
+将音乐发送给对等端并停止呈现接收的音频：
+
+```js
+EXAMPLE 5
+async function playMusicOnHold() {
+  try {
+    // Assume we have an audio transceiver and a music track named musicTrack
+    await audio.sender.replaceTrack(musicTrack);
+    // Mute received audio
+    audio.receiver.track.enabled = false;
+    // Set the direction to send-only (requires negotiation)
+    audio.direction = 'sendonly';
+  } catch (err) {
+    console.error(err);
+  }
+}
+```
+
+响应远程对等端的"sendonly"邀请：
+
+```js
+EXAMPLE 6
+async function handleSendonlyOffer() {
+  try {
+    // Apply the sendonly offer first,
+    // to ensure the receiver is ready for ICE candidates.
+    await pc.setRemoteDescription(sendonlyOffer);
+    // Stop sending audio
+    await audio.sender.replaceTrack(null);
+    // Align our direction to avoid further negotiation
+    audio.direction = 'recvonly';
+    // Call createAnswer and send a recvonly answer
+    await doAnswer();
+  } catch (err) {
+    // handle signaling error
+  }
+}
+```
+
+停止发送音乐并发送从麦克风捕获的音频，以及呈现接收到的音频：
+
+```js
+EXAMPLE 7
+async function stopOnHoldMusic() {
+  // Assume we have an audio transceiver and a microphone track named micTrack
+  await audio.sender.replaceTrack(micTrack);
+  // Unmute received audio
+  audio.receiver.track.enabled = true;
+  // Set the direction to sendrecv (requires negotiation)
+  audio.direction = 'sendrecv';
+}
+```
+
+响应被远程对等端的取消暂停操作：
+
+```js
+EXAMPLE 8
+async function onOffHold() {
+  try {
+    // Apply the sendrecv offer first, to ensure receiver is ready for ICE candidates.
+    await pc.setRemoteDescription(sendrecvOffer);
+    // Start sending audio
+    await audio.sender.replaceTrack(micTrack);
+    // Set the direction sendrecv (just in time for the answer)
+    audio.direction = 'sendrecv';
+    // Call createAnswer and send a sendrecv answer
+    await doAnswer();
+  } catch (err) {
+    // handle signaling error
+  }
+}
+```
+
+### 5.5 `RTCDtlsTransport`接口
+
+`RTCDtlsTransport`接口允许应用程序访问有关`RTCRtpSender`和`RTCRtpReceiver`对象发送和接收RTP和RTCP数据包的数据报传输层安全性（DTLS）传输的信息，以及数据通道发送和接收的其他数据，如SCTP数据包。特别的，DTLS为底层传输增加了安全性，`RTCDtlsTransport`接口允许访问有关底层传输和添加的安全性信息。`RTCDtlsTransport`对象调用`setLocalDescription()`和`setRemoteDescription()`构造。每个`RTCDtlsTransport`对象表示特定`RTCRtpTransceiver`的RTP或RTCP组件的DTLS传输层，或者一组`RTCRtpTransceivers`（如果这样的组已通过捆绑[BUNDLE](http://w3c.github.io/webrtc-pc/#bib-BUNDLE)协商）。
+
+> 注意：现有`RTCRtpTransceiver`的新DTLS关联将由现有`RTCDtlsTransport`对象表示，其状态将相应更新，而不是由新对象表示。
+
+`RTCDtlsTransport`对象有一个被初始化为`new`的内部槽[DtlsTransportState]。
+当底层DTLS传输需要更新相应`RTCDtlsTransport`对象的状态时，用户代理必须将包含以下步骤的任务加入队列：
+1. 设 *transport* 为接收状态更新的`RTCDtlsTransport`对象。
+2. 设 *newState* 为新状态。
+3. 将 *transport* 的[DtlsTransportState]槽设为 *newState* 。
+4. 在 *transport* 上触发名为`statechange`的事件。
+
+```webidl
+[Exposed=Window]
+interface RTCDtlsTransport : EventTarget {
+  readonly attribute RTCIceTransport iceTransport;
+  readonly attribute RTCDtlsTransportState state;
+  sequence<ArrayBuffer> getRemoteCertificates();
+  attribute EventHandler onstatechange;
+  attribute EventHandler onerror;
+};
+```
+
+**属性：**
+
+- RTCIceTransport类型的`iceTransport`，只读：`iceTransport`属性是用于发送和接收数据包的底层传输。多个活跃的`RTCDtlsTransport`对象之间可能不共享底层传输。
+- RTCDtlsTransportState类型的`state`，只读：请求读值时`state`属性必须返回[DtlsTransport]槽的值。
+- EventHandler类型的`onstatechange`：该事件处理器的事件类型为`statechange`。
+- EventHandler类型的`onerror`：该事件处理器的事件类型为`error`。
+
+**方法：**
+
+- *getRemoteCertificates* ：返回远程端使用的证书链，每个证书以二进制可辨别编码规则（DER）[X690](http://w3c.github.io/webrtc-pc/#bib-X690)编码。 `getRemoteCertificates()`将在选择远程证书之前返回一个空列表，该列表将在`RTCDtlsTransportState`转换为`"connected"`时完成。
+
+
+**RTCDtlsTransportState枚举**
+
+```webidl
+enum RTCDtlsTransportState {
+  "new",
+  "connecting",
+  "connected",
+  "closed",
+  "failed"
+};
+```
+
+枚举值描述：
+
+- new：DTLS还未启动协商。
+- connecting：DTLS正处于协商一个安全连接并验证远程指纹的过程中。
+- connected：DTLS已完成安全连接的协商和远程指纹的验证过程。
+- closed：由于收到close_notify告警或调用`close()`，传输已被故意关闭。
+- failed：由于错误（例如收到错误警报或无法验证远程指纹），传输失败。
+
+#### 5.5.1 `RTCDtlsFingerprint`字典
+
+`RTCDtlsFingerprint`字典包含哈希算法及[RFC4572](http://w3c.github.io/webrtc-pc/#bib-RFC4572)中的证书指纹。
+
+```webidl
+dictionary RTCDtlsFingerprint {
+  DOMString algorithm;
+  DOMString value;
+};
+```
+
+`RTCDtlsFingerprint`字典成员：
+
+- DOMString类型的`algorithm`："哈希函数文本名称"注册表[IANA-HASH-FUNCTION](http://w3c.github.io/webrtc-pc/#bib-IANA-HASH-FUNCTION)中定义的哈希函数算法之一。
+- DOMString类型的`value`：使用[RFC4572](http://w3c.github.io/webrtc-pc/#bib-RFC4572)第5节中"指纹"语法表示的小写十六进制字符串中的证书指纹值。
+
+### 5.6 `RTCIceTransport`接口
+
+`RTCIceTransport`接口允许应用程序访问有关发送和接收数据包的ICE传输的信息。特别地，ICE管理涉及应用可能想要访问的状态的对等连接。`RTCIceTransport`对象通过调用`setLocalDescription()`和``setRemoteDescription()`被构造。底层ICE状态由ICE代理管理; 因此如下所述，当ICE代理向用户代理发起命令时，`RTCIceTransport`的状态改变。每个`RTCIceTransport`对象表示特定`RTCRtpTransceiver`的RTP或RTCP组件的ICE传输层，或者一组`RTCRtpTransceivers`（如果这样的组已通过[BUNDLE](http://w3c.github.io/webrtc-pc/#bib-BUNDLE)协商）。
+
+> 注意：现有`RTCRtpTransceiver`的ICE重启将由现有的`RTCIceTransport`对象表示，其状态将相应更新，而不是由新对象表示。
+
+当ICE代理指示它开始为`RTCIceTransport`收集一代候选项时，用户代理必须将包含以下步骤的任务加入操作队列：
+1. 
