@@ -2162,7 +2162,7 @@ dictionary RTCDtlsFingerprint {
 
 ### 5.6 `RTCIceTransport`接口
 
-`RTCIceTransport`接口允许应用程序访问有关发送和接收数据包的ICE传输的信息。特别地，ICE管理涉及应用可能想要访问的状态的对等连接。`RTCIceTransport`对象通过调用`setLocalDescription()`和``setRemoteDescription()`被构造。底层ICE状态由ICE代理管理; 因此如下所述，当ICE代理向用户代理发起命令时，`RTCIceTransport`的状态改变。每个`RTCIceTransport`对象表示特定`RTCRtpTransceiver`的RTP或RTCP组件的ICE传输层，或者一组`RTCRtpTransceivers`（如果这样的组已通过[BUNDLE](http://w3c.github.io/webrtc-pc/#bib-BUNDLE)协商）。
+`RTCIceTransport`接口允许应用程序访问有关发送和接收数据包的ICE传输的信息。特别地，ICE管理涉及应用可能想要访问的状态的点对点连接。`RTCIceTransport`对象通过调用`setLocalDescription()`和``setRemoteDescription()`被构造。底层ICE状态由ICE代理管理; 因此如下所述，当ICE代理向用户代理发起命令时，`RTCIceTransport`的状态改变。每个`RTCIceTransport`对象表示特定`RTCRtpTransceiver`的RTP或RTCP组件的ICE传输层，或者一组`RTCRtpTransceivers`（如果这样的组已通过[BUNDLE](http://w3c.github.io/webrtc-pc/#bib-BUNDLE)协商）。
 
 > 注意：现有`RTCRtpTransceiver`的ICE重启将由现有的`RTCIceTransport`对象表示，其状态将相应更新，而不是由新对象表示。
 
@@ -2182,7 +2182,292 @@ dictionary RTCDtlsFingerprint {
 3. 设 *transport* 为结束候选项收集工作的`RTCIceTransport`对象。
 4. 创建一个新`RTCIceCandidate`对象，命名为 *newCandidate* ，其`sdpMid`和`sdpMLineIndex`值设为与之关联的`RTCIceTransport`的对应值，`usernameFragment`设为收集完一代候选项的用户名片段，`candidate`设为一个空字符串，其他所有可空的成员设为`null`。
 5. 利用`candidate`属性设为 *newCandidate* 的 `RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件。
-6. 如果另一代候选项正在被收集，则终止步骤。 **注意：** 如果在ICE代理仍在收集上一代候选项时开始ICE重启，则可能会发生这种情况。
+6. 如果另一代候选项正在被收集，则终止步骤。 **注意：** 如果在ICE代理仍在收集上一代候选项时启动ICE重启，则可能会发生这种情况。
 7. 将 *transport* 的[IceGatherState]槽设为`complete`。
 8. 在 *transport* 上触发名为`gatheringstatechange`的事件。
 9. 更新 *connection* 的ICE收集状态。
+    
+当ICE代理指示新的ICE候选项可用于`RTCIceTransport`时，从ICE候选池中取一个或重新开始收集一个候选项，用户代理将包含以下步骤的任务加入操作列队：
+
+1. 设 *connection* 为与ICE代理关联的`RTCPeerConnection`对象。
+2. 如果 *connection* 的[IsClosed]槽为`true`，则终止后续步骤。
+3. 设 *transport* 为被提供可用候选项的`RTCIceTransport`。
+4. 如果 *connection.[PendingLocalDescription]* 非空，且代表收集 *candidate* 的ICE代，则将 *candidate* 添加入*connection.[PendingLocalDescription].sdp* 。
+5. 若 *connection.[CurrentLocalDescription]* 非空，且代表收集 *candidate* 的ICE代，则将 *candidate* 添加入*connection.[CurrentLocalDescription].sdp* 。
+6. 创建一个代表候选项的`RTCIceCandidate`对象，命名为 *newCandidate* 。
+7. 将 *newCandidate* 加入 *transport* 的本地候选项集合。
+8. 利用`candidate`属性设为 *newCandidate* 的 `RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件。
+
+当ICE代理指示`RTCIceTransport`的`RTCIceTransportState`已被更改时，用户代理将包含以下步骤的任务加入操作列队：
+
+1. 设 *connection* 为与ICE代理关联的`RTCPeerConnection`对象。
+2. 如果 *connection* 的[IsClosed]槽为`true`，则终止后续步骤。
+3. 设 *transport* 为状态改变的`RTCIceTransport`对象。
+4. 设 *newState* 为表示改变后状态的`RTCIceTransportState`对象。
+5. 将 *transport* 的[IceTransportState]槽设为 *newState* 。
+6. 在 *transport* 上触发名为`statechange`的事件。
+7. 更新 *connection* 的ICE连接状态。
+8. 更新 *connection* 的连接状态。
+
+当ICE代理指示`RTCIceTransport`的所选候选对已更改时，用户代理将包含以下步骤的任务加入操作列队：
+
+1. 设 *connection* 为与ICE代理关联的`RTCPeerConnection`对象。
+2. 如果 *connection* 的[IsClosed]槽为`true`，则终止后续步骤。
+3. 设 *transport* 为所选候选对已更改的`RTCIceTransport`对象。
+4. 若有候选对被选中，则设 *newCandidate* 为代表所选候选对的新创建`RTCIceCandidatePair`对象，否贼 *newCandidate* 为空。
+5. 将 *transport* 的[SelectedCandidatePair]设为 *newCandidate* 。
+6. 在 *transport* 上触发名为`selectedcandidatepairchange`的事件。
+
+一个`RTCIceTransport`对象持有以下槽：
+
+- 初始化为`new`的[IceTransportState]。
+- 初始化为`new`的[IceGathererState]。
+- 初始化为`null`的[SelectedCandidatePair]。
+
+```webidl
+[Exposed=Window]
+interface RTCIceTransport : EventTarget {
+  readonly attribute RTCIceRole role;
+  readonly attribute RTCIceComponent component;
+  readonly attribute RTCIceTransportState state;
+  readonly attribute RTCIceGathererState gatheringState;
+  sequence<RTCIceCandidate> getLocalCandidates();
+  sequence<RTCIceCandidate> getRemoteCandidates();
+  RTCIceCandidatePair? getSelectedCandidatePair();
+  RTCIceParameters? getLocalParameters();
+  RTCIceParameters? getRemoteParameters();
+  attribute EventHandler onstatechange;
+  attribute EventHandler ongatheringstatechange;
+  attribute EventHandler onselectedcandidatepairchange;
+};
+```
+
+**属性：**
+
+- DOMString类型的`role`，只读：`role`属性必须返回传输的ICE角色。
+- RTCIceComponent类型的`component`，只读：`component`属性必须返回传输的ICE组件。当启动RTCP多路复用，单个传输RTP/RTCP的`RTCIceTransport`，其`component`会被设为"RTP"。
+- RTCIceTransportState类型的`state`，只读：请求读值时，`state`属性必须返回[IceTransportState]的值。
+- RTCIceGathererState类型的`gatheringState`，只读：请求读值时，`gatheringState`属性必须返回[IceGathererState]的值。
+- EventHandler类型的`onstatechange`：该`statechange`事件类型的事件处理器，一旦`RTCIceTransport`状态改变就会被触发。
+- EventHandler类型的`ongatheringstatechange`：该`gatheringstatechange`事件类型的事件处理器，一旦`RTCIceTransport`的收集状态改变就会被触发。
+- EventHandler类型的`onselectedcandidatepairchange`：该`gatheringstatechange`事件类型的事件处理器，一旦`RTCIceTransport`选中的候选对改变就会被触发。
+
+**方法：**
+
+- *getLocalCandidates* ：返回一个序列，描述为此`RTCIceTransport`收集并在`onicecandidate`中发送的本地ICE候选项。
+- *getRemoteCandidates* ：返回发送数据包的选定候选对。此方法必须返回[SelectedCandidatePair]槽的值。
+- *getLocalParameters* ：返回此`RTCIceTransport`通过`setLocalDescription`方法接收的本地ICE参数，如果尚未接收，则返回`null`。
+- *getRemoteParameters* ：返回此`RTCIceTransport`通过`setRemoteDescription`方法接收的远程ICE参数，如果尚未接收，则返回`null`。
+
+#### 5.6.1 `RTCIceParameters`字典
+
+```webidl
+dictionary RTCIceParameters {
+  DOMString usernameFragment;
+  DOMString password;
+};
+```
+
+`RTCIceParameters`字典成员：
+
+- DOMString类型的`usernameFragment`：[ICE 7.1.2.3](http://w3c.github.io/webrtc-pc/#bib-ICE)中定义的ICE用户名片段。
+- DOMString类型的`password`：[ICE 7.1.2.3](http://w3c.github.io/webrtc-pc/#bib-ICE)中定义的ICE密码。
+
+#### 5.6.2 `RTCIceCandidatePair`字典
+
+```webidl
+dictionary RTCIceCandidatePair {
+  RTCIceCandidate local;
+  RTCIceCandidate remote;
+};
+```
+
+`RTCIceParameters`字典成员：
+
+- RTCIceCandidate类型的`local`：本地ICE候选项。
+- RTCIceCandidate类型的`remote`：远程ICE候选项。
+
+#### 5.6.3 `RTCIceGathererState`枚举
+
+```webidl
+enum RTCIceGathererState {
+  "new",
+  "gathering",
+  "complete"
+};
+```
+
+`RTCIceGathererState`枚举值描述
+
+- new：`RTCIceTransport`刚被创建，尚未启动候选项收集。
+- gathering：`RTCIceTransport`正在候选项收集的过程中。
+- complete：`RTCIceTransport`已完成收集，并已发送此传输的候选项终止指示。在ICE重启之前，它不会再次收集候选项。
+
+#### 5.6.4 `RTCIceTransportState`枚举
+
+```webidl
+enum RTCIceTransportState {
+  "new",
+  "checking",
+  "connected",
+  "completed",
+  "disconnected",
+  "failed",
+  "closed"
+};
+```
+
+`RTCIceTransportState`枚举值描述：
+
+- new：`RTCIceTransport`正在收集候选项和 /或正在等待远程候选项被提供，且还未启动检查。
+- checking：`RTCIceTransport`已经收到至少一个远程候选项，正在检查候选对，且尚未找到可用连接或许可检查[RFC7675](http://w3c.github.io/webrtc-pc/#bib-RFC7675)在先前所有成功的候选对都失败了。除了检查，它还可能仍在收集。
+- connected：`RTCIceTransport`找到了一个可用的连接，但仍在检查其他候选对，以查看是否有更好的连接。 它可能仍然在收集和/或等待其他远程候选人。如果许可检查[RFC7675]在正在使用的连接上失败，并且没有其他成功的候选对可用，则状态转换为`"checking"`（还有待检查的候选对）或`"disconnected"`（没有候选对要检查，但对等端仍在收集和/或等待其他远程候选项）。
+- completed：`RTCIceTransport`已完成收集，收到一条表明没有更多远程候选项的指示，已完成所有候选对的检查并找到一个连接。如果许可检查[RFC7675]随后在所有成功的候选对上都失败，则状态转换为`"failed"`。
+- disconnected：ICE代理已确定此`RTCIceTransport`当前已丢失连接。这是一种瞬时状态，可能会在片状网络上间歇性地触发（并在没有其他动作的情况下自行解决）。确定此状态的方式取决于具体实现。以下是例子：
+    -  丢失了正在使用的连接的网络接口。
+    -  重复无法收到STUN请求的响应。
+另外的，`RTCIceTransport`已完成所有现有候选对的检查但未找到连接（或者许可检查[RFC7675]之前成功，但现已失败），但它仍在收集和/或等待其他远程候选项。
+- failed：`RTCIceTransport`已完成收集，收到一个表明没有更多的远程候选项的指示，已完成检查所有候选对，并且所有候选对的连接检查都失败或不被许可。这是一个最终状态。
+- closed：`RTCIceTransport`已关闭且不再响应STUN请求。
+
+ICE重启导致候选项收集和连接检查重新启动，如果在`"completed"`状态下开始则会转移到`"connected"`状态。如果在瞬时`"disconnected"`状态下启动，则会导致状态转移到`"checking"`，从而很快忘记先前已丢失的连接。
+
+`"failed"`和`"completed"`状态要求一个没有其他远程候选项的指示。可以用一个候选值调用`addIceCandidate`方法来指示，该候选值的`candidate`属性设为空字符串或`canTrickleIceCandidates`属性设为`false`。
+
+以下是一些状态转移的例子：
+
+- （`RTCIceTransport`作为`setLocalDescription`和`setRemoteDescription`的调用结果被创建）：`new`。
+- （`new`，远程候选项被接收）：`checking`。
+- （`checking`，找到可用连接）：`connected`。
+- （`checking`，检查失败，但仍在收集过程中）：`disconnected`。
+- （`checking`，放弃）：`failed`。
+- （`disconnected`，新的本地候选项）：`checking`。
+- （`connected`，结束所有检查）：`completed`。
+- （`completed`，失去连接）：`disconnected`。
+- （`disconnected`或`failed`，ICE开始重启）：`checking`。
+- （`completed`，ICE开始重启）：`connected`。
+- `RTCPeerConnection.close(): closed`
+
+![状态转移图](http://w3c.github.io/webrtc-pc/images/icetransportstate.svg)
+
+#### 5.6.5 `RTCIceRole`枚举
+
+```webidl
+enum RTCIceRole {
+  "controlling",
+  "controlled"
+};
+```
+
+`RTCIceRole`枚举值描述：
+
+- controlling：[ICE]第三节定义的控制代理。
+- controlled：[ICE]第三节定义的被控制代理。
+
+#### 5.6.6 `RTCIceComponent`枚举
+
+```webidl
+enum RTCIceComponent {
+  "rtp",
+  "rtcp"
+};
+```
+
+`RTCIceComponent`枚举值描述：
+
+- rtp：如[ICE 4.1.1.1]中定义，ICE传输用于RTP（或RTCP复用）。与RTP（例如数据信道）复用的协议共享其组件ID。 这表示在`candidate-attribute`中编码的`component-id`值`1`。
+- rtcp：如[ICE 4.1.1.1]中定义，ICE传输用于RTCP。 这表示在`candidate-attribute`中编码的`component-id`值`2`。
+  
+
+###  5.7 `RTCTrackEvent`
+
+使用`RTCTrackEvent`接口的`track`事件。
+
+```webidl
+[Constructor(DOMString type, RTCTrackEventInit eventInitDict),
+  Exposed=Window]
+interface RTCTrackEvent : Event {
+  readonly attribute RTCRtpReceiver receiver;
+  readonly attribute MediaStreamTrack track;
+  [SameObject]
+  readonly attribute FrozenArray<MediaStream> streams;
+  readonly attribute RTCRtpTransceiver transceiver;
+};
+```
+
+**构造器：**
+
+- RTCTrackEvent
+
+**属性：**
+
+- RTCRtpReceiver类型的`receiver`，只读：`receiver`属性代表与事件关联的`RTCRtpReceiver`对象。
+- MediaStreamTrack类型的`track`，只读：`track`属性代表与以`receiver`标识的`RTCRtpReceiver`对象关联的`MediaStreamTrack`对象。
+- FrozenArray<MediaStream>类型的`streams`，只读：`streams`属性返回一个`MediaStream`对象数组，代表此事件的`track`所属的MediaStream。
+- RTCRtpTransceiver类型的`transceiver`，只读：`transceiver`属性代表与事件关联的`RTCRtpTransceiver`。
+
+```webidl
+dictionary RTCTrackEventInit : EventInit {
+  required RTCRtpReceiver receiver;
+  required MediaStreamTrack track;
+  sequence<MediaStream> streams = [];
+  required RTCRtpTransceiver transceiver;
+};
+```
+
+`RTCTrackEventInit`字典成员：
+
+- RTCRtpReceiver类型的`receiver`，必需项：`receiver`属性代表与事件关联的`RTCRtpReceiver`对象。
+- MediaStreamTrack类型的`track`，必需项：：`track`属性代表与以`receiver`标识的`RTCRtpReceiver`对象关联的`MediaStreamTrack`对象。
+- sequence<MediaStream>类型的`streams`，缺省值为`[]`：`streams`属性返回一个`MediaStream`对象数组，代表此事件的`track`所属的MediaStream。
+- RTCRtpTransceiver类型的`transceiver`，必需项：`transceiver`属性代表与事件关联的`RTCRtpTransceiver`。
+
+## 6. 点对点数据API
+
+点对点数据API允许Web应用程序以点对点的方式发送和接收通用的应用程序数据。用于发送和接收数据的API模拟WebSockets[WEBSOCKETS-API](http://w3c.github.io/webrtc-pc/#bib-WEBSOCKETS-API)的行为。
+
+### 6.1 RTCPeerConnection接口扩展
+
+点对点数据API扩展了以下描述的`RTCPeerConnection`接口。
+
+```webidl
+partial interface RTCPeerConnection {
+  readonly attribute RTCSctpTransport? sctp;
+  RTCDataChannel createDataChannel(USVString label,
+  optional RTCDataChannelInit dataChannelDict);
+  attribute EventHandler ondatachannel;
+};
+```
+
+**属性：**
+
+- RTCSctpTransport类型的`sctp`，只读，可空：SCTP数据的发送和接收的SCTP传输通道。如果尚未协商SCTP，则该值为`null`。该属性必须返回存储在[SctpTransport]内部槽中的`RTCSctpTransport`对象。
+- EventHandler类型的`ondatachannel`：本事件处理器的事件类型的是`datachannel`。
+
+**方法：**
+
+- *createDataChannel* ：根据给定标签创建一个新`RTCDataChannel`对象。`RTCDataChannelInit`字典可用于配置底层通道的属性，例如数据可靠性。<br>  当`createDataChannel`被调用，用户代理必须按以下步骤运行：
+    1. 设 *connection* 为调用此方法的`RTCPeerConnection`对象。
+    2. 若 *connection* 的[IsClosed]槽为`true`，则抛出一个`InvalidStateError`错误。
+    3. 创建一个`RTCDataChannel`， *channel* 。
+    4. 将 *channel* 的[DataChannelLabel]初始化为第一个参数的值。
+    5. 如果[DataChannelLabel]长度大于65535字节，抛出一个`TypeError`。
+    6. 设 *options* 为第二个参数。
+    7. 若 *options* 的`maxPacketLifeTime `成员存在的话，将 *channel* 的[MaxPacketLifeTime]槽初始化为它，否则为`null`。
+    8. 若 *options* 的`maxRetransmits`成员存在的话，将 *channel* 的[MaxRetransmits]槽初始化为它，否则为`null`。
+    9. 将 *channel* 的[Ordered]槽初始化为 *options* 的`ordered`成员。
+    10. 将 *channel* 的[DataChannelProtocol]槽初始化为 *options* 的`protocol`成员。
+    11. 如果[DataChannelProtocol]长度大于65535字节，抛出一个`TypeError`。
+    12. 将 *channel* 的[Negotiated]槽初始化为 *options* 的`negotiated`成员。
+    13. 若 *options* 的`id`成员存在且其[Negotiated]槽值为`true`的话，将 *channel* 的[DataChannelId]槽初始化为它，否则为`null`。 **注意：** 这意味着如果数据通道在带内协商完成，则忽略`id`成员; 这是故意所为。如[RTCWEB-DATA-PROTOCOL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)中所述，带内协商的数据通道应根据DTLS角色选择ID。
+    14. 若[Negotiated]槽为`true`且[DataChannelId]为`null`，抛出一个`TypeError`。
+    15. 将 *channel* 的[DataChannelPriority]槽初始化为 *options* 的`priority`成员。
+    16. 若[MaxPacketLifeTime]和[MaxRetransmits]属性都被设置了（非空），则抛出`TypeError`。
+    17. 如果[MaxPacketLifeTime]或[MaxRetransmits]设置已被设为指示不可靠模式，且该值超过用户代理支持的最大值，则必须将值设置为用户代理支持的最大值。
+    18. 如果[DataChannelId]等于65535（大于最大允许的ID 65534但仍在`unsigned short`精度范围内），则抛出`TypeError`。
+    19. 如果[DataChannelId]槽为`null`（由于没有ID传递到`createDataChannel`，或者[Negotiated]为`false`），并且已经协商了SCTP传输的DTLS角色，则根据[RTCWEB-DATA-PROTOCOL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)，以用户代理生成的值初始化[DataChannelId]，并跳到下一步。如果无法生成可用ID，或者现有`RTCDataChannel`正在使用[DataChannelId]槽的值，则抛出`OperationError`异常。 **注意：** 若此步骤完成后[DataChannelId]槽为`null`，则它会在设置`RTCSessionDescription`的过程中，确定DTLS角色后被填充。
+    20. 设 *transport* 为 *connection* 的[SctpTransport]槽。<br>  若[DataChannel]槽非空， *transport* 处于`connected`状态，且[DataChannelId]大于等于 *transport* 的[MaxChannels]，则抛出一个`OperationError`。
+    21. 若 *channel* 为 *connection* 中创建的第一个`RTCDataChannel`对象，则更新 *connection* 的协商标记位。
+    22. 返回 *channel* 然后并行地执行下面步骤。
+    23. 创建与 *channel* 关联的底层数据传输，并根据 *channel* 中的相关属性对它进行配置。
+
