@@ -2471,3 +2471,31 @@ partial interface RTCPeerConnection {
     22. 返回 *channel* 然后并行地执行下面步骤。
     23. 创建与 *channel* 关联的底层数据传输，并根据 *channel* 中的相关属性对它进行配置。
 
+#### 6.1.1 `RTCSctpTransport`接口
+
+`RTCSctpTransport`接口允许应用程序访问与特定SCTP相关联的SCTP数据通道中的信息。
+
+#### 6.1.1.1 创建实例
+
+用一个可选的初始状态 *initialState* **创建一个RTCSctpTransport** 实例的步骤如下：
+
+1. 设 *transport* 为一个新的`RTCSctpTransport`对象。
+2. 如果提供了 *initialState* ，则将 *transport* 的[SctpTransportState]槽初始化为它，否则为`"neww"`。
+3. 为 *transport* 创建[MaxMessageSize]槽，并运行[更新消息大小的最大值](https://www.w3.org/TR/webrtc/#dfn-update-the-data-max-message-size)标记的步骤来初始化它。
+4. 将 *transport* 的[MaxChannels]槽初始化为`null`。
+5. 返回 *transport* 。
+
+#### 6.1.1.2 更新消息大小的最大值
+
+运行以下步骤更新`RTCSctpTransport`的 **消息大小的最大值** 。
+
+1. 设 *transport* 为被更新的`RTCSctpTransport`对象。
+2. 如[SCTP-SDP](https://www.w3.org/TR/webrtc/#bib-SCTP-SDP)第六节所述，设 *remoteMaxMessageSize* 为从远程描述中读取的SDP属性`"max-message-size"`的值，若该属性丢失，则设为65536。
+3. 设 *canSendSize* 为本客户端可以发送的字节数（例如，本地发送缓冲区的大小），若实现可以处理任意大小的消息则设为0。
+4. 若 *remoteMaxMessageSize* 和 *canSendSize* 均为0，则将[MaxMessageSize]设为一个正无穷值。
+5. 否则，若 *remoteMaxMessageSize* 和 *canSendSize* 其中一个为0，则将[MaxMessageSize]设为两者中的较大值。
+6. 否则将[MaxMessageSize]设为 *remoteMaxMessageSize* 和 *canSendSize* 中的较小值。
+
+#### 6.1.1.3 连接过程
+
+**一旦一个SCTP传输被连接** ，意味着已经与一个`RTCSctpTransport`建立了SCTP关联，
