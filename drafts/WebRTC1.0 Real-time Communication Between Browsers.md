@@ -1134,8 +1134,8 @@ enum RTCIceCandidateType {
 
 > 注意：`icecandidate`有三种不同类型的表示：
 > - 收集到了一个候选地址时，`RTCIceCandidate`事件就会触发，本端得到这个候选地址后，应该通过信号通知对端，对端通过`addIceCandidate`方法将接收到的候选地址设置到自己的`peerConnection`实例中。
-> - 某一`RTCIceTransport`已结束一代候选地址的收集工作，并且提供了[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)8.2节中定义的候选地址结束指示。这通过将`candidate.candidate`设为空字符串来表示。`candidate`对象应该发信号通知远程对等端并向普通ICE候选地址一样传入`addIceCandidate`方法，以向远程对等端提供候选地址结束指示。
-> 所有`RTCIceTransport`已结束候选地址的收集工作，且`RTCPeerConnection`的`RTCIceGatheringState`已迁移至`complete`。这通过将事件的`candidate`成员设为`null`来表示。它只为了后向兼容性存在，并且本事件不需要通知远程对等端。它与`"complete"`状态的`icegatheringstatechange`事件等效。
+> - 某一`RTCIceTransport`已结束一代候选地址的收集工作，并且提供了[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)8.2节中定义的候选地址结束指示。这通过将`candidate.candidate`设为空字符串来表示。`candidate`对象应该发信号通知远程对端并向普通ICE候选地址一样传入`addIceCandidate`方法，以向远程对端提供候选地址结束指示。
+> 所有`RTCIceTransport`已结束候选地址的收集工作，且`RTCPeerConnection`的`RTCIceGatheringState`已迁移至`complete`。这通过将事件的`candidate`成员设为`null`来表示。它只为了后向兼容性存在，并且本事件不需要通知远程对端。它与`"complete"`状态的`icegatheringstatechange`事件等效。
 
 ```webidl
 [Constructor(DOMString type, optional RTCPeerConnectionIceEventInit eventInitDict),
@@ -1264,7 +1264,7 @@ dictionary RTCCertificateExpiration {
 
 #### 4.10.2 RTCCertificate接口
 
-`RTCCertificate`接口代表了一个用于WebRTC通信鉴权的证书。除了可见的属性，内部槽包含了生成的私有密钥子集[KeyingMaterial]的句柄，`RTCPeerConnection`与对等端进行身份验证的证书[Certificate]，以及创建的对象的源[Origin]。
+`RTCCertificate`接口代表了一个用于WebRTC通信鉴权的证书。除了可见的属性，内部槽包含了生成的私有密钥子集[KeyingMaterial]的句柄，`RTCPeerConnection`与对端进行身份验证的证书[Certificate]，以及创建的对象的源[Origin]。
 
 ```webidl
 [Exposed=Window,
@@ -1306,7 +1306,7 @@ interface RTCCertificate {
 
 ## 5. RTP媒体API
 
-**RTP媒体API** 使得网络应用可以在端到端对等连接之上发送并接收`MediaStreamTrack`流媒体轨对象。当媒体轨被添加至`RTCPeerConnection`时会导致信令发出信号；当本信号被转发至远程对等端，对应的媒体轨会在远程一侧被创建。
+**RTP媒体API** 使得网络应用可以在端到端对等连接上发送并接收`MediaStreamTrack`流媒体轨对象。当媒体轨被添加至`RTCPeerConnection`时会导致信令发送信号；当本信号被转发至远程对端，对应的媒体轨会在远程一侧被创建。
 
 > 注意：`RTCPeerConnection`发送的媒体轨与另一`RTCPeerConnection`接收的媒体轨之间没有确切的1：1对应关系。比如，被发送的媒体轨的ID与被接受的媒体轨的ID不存在映射关系。同样的，即使在接收端没有创建新的媒体轨，`replaceTrack`调用也能改变`RTCRtpSender`发出的媒体轨，对应的`RTCRtpReceiver`只会持有一个媒体轨，此媒体轨可能代表了整合在一起的多个媒体数据源。`addTransceiver`和`replaceTrack`调用都可被用于多次发送同一个媒体轨，在接收端每个轨都会被单独的接收器所观察。因此，考虑将`RTCRtpSender`与另一侧`RTCRtpReceiver`之间的媒体轨建立起1：1的关系会更为准确，如果有需要的话可以使用`RTCRtpTransceiver`的`mid`值来匹配发送端和接收端。
 
@@ -1449,9 +1449,9 @@ enum RTCRtpTransceiverDirection {
 
 `RTCRtpTransceiverDirection`枚举值描述：
 
-- sendrecv：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 将向对等端发出发送RTP的邀请，若对等端接收邀请，且`sender.getParameters().encodings[i].active`全为`true`的时候，数据将开始发送。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 将发出接收RTP的邀请，在远程对等端接收邀请之后会开始接收数据。
-- sendonly：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 将向对等端发出发送RTP的邀请，若对等端接收邀请，且`sender.getParameters().encodings[i].active`全为`true`的时候，数据将开始发送。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 不会发出接收RTP的邀请，也不会接收数据。
-- recvonly：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 不会发出发送RTP的邀请，也不会发送数据。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 将发出接收RTP的邀请，在远程对等端接收邀请之后会开始接收数据。
+- sendrecv：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 将向对端发出发送RTP的邀请，若对等端接收邀请，且`sender.getParameters().encodings[i].active`全为`true`的时候，数据将开始发送。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 将发出接收RTP的邀请，在远程对端接收邀请之后会开始接收数据。
+- sendonly：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 将向对端发出发送RTP的邀请，若对等端接收邀请，且`sender.getParameters().encodings[i].active`全为`true`的时候，数据将开始发送。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 不会发出接收RTP的邀请，也不会接收数据。
+- recvonly：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 不会发出发送RTP的邀请，也不会发送数据。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 将发出接收RTP的邀请，在远程对端接收邀请之后会开始接收数据。
 - Inactive：`RTCRtpTransceiver`的`RTCRtpSender` *sender* 不会发出发送RTP的邀请，也不会发送数据。`RTCRtpTransceiver`的`RTCRtpReceiver` *receiver* 不会发出接收RTP的邀请，也不会接收数据。
 
 #### 5.1.1 处理远程媒体流轨
@@ -1482,7 +1482,7 @@ enum RTCRtpTransceiverDirection {
 
 ### 5.2 `RTCRtpSender`接口
 
-`RTCRtpSender`接口允许应用控制一个`MediaStreamTrack`如何被编码并被发送至远程对等端。当一个`RTCRtpSender`对象的`setParameters`方法被调用时，编码会以合适的方式被改变。
+`RTCRtpSender`接口允许应用控制一个`MediaStreamTrack`如何被编码并被发送至远程对端。当一个`RTCRtpSender`对象的`setParameters`方法被调用时，编码会以合适的方式被改变。
 为了用现有的MediaStreamTrack对象 *track*，字符串 *kind* ，MediaStream对象列表 *streams* 以及可选的`RTCRtpEncodingParameters`对象列表 *sendEncodings* **创建一个RTCRtpSender对象**，运行以下步骤：
 
 1. 设 *sender* 为一个新`RTCRtpSender`对象。
@@ -1912,7 +1912,7 @@ dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {
 
 `RTCRtpSynchronizationSource`字典成员：
 
-- boolean类型的`voiceActivityFlag`：仅适用于音频接收端。表示该源播放的最后一个RTP数据包是否包含语音活动（true or false）。 如[RFC6464]第4节所述，如果头部扩展不存在，或者对等端通过将"vad"扩展属性设置为"off"来表示它没有使用V位，则`voiceActivityFlag`将不存在。
+- boolean类型的`voiceActivityFlag`：仅适用于音频接收端。表示该源播放的最后一个RTP数据包是否包含语音活动（true or false）。 如[RFC6464]第4节所述，如果头部扩展不存在，或者对端通过将"vad"扩展属性设置为"off"来表示它没有使用V位，则`voiceActivityFlag`将不存在。
 
 ### 5.4 `RTCRtpTransceiver`接口
 
@@ -1982,7 +1982,7 @@ interface RTCRtpTransceiver {
     7. 将 *transceiver* 的[Stopped]槽设为`true`。
     8. 将 *transceiver* 的[Receptive]槽设为`false`。
     9. 将 *transceiver* 的[CurrentDirection]槽设为`null`。
-- *setCodecPreferences* ：`setCodecPreferences`方法会覆盖用户代理使用的默认编解码器首选项。当使用`createOffer`或`createAnswer`生成会话描述时，用户代理必须按照`codecs`参数中指定的顺序使用指定的编解码器，用于与此`RTCRtpTransceiver`对应的媒体部分。<br>  此方法允许应用程序禁用特定编解码器的协商过程。它还允许应用程序使远程对等端偏好列表中首先出现的编解码器。<br>  对于所有包含此`RTCRtpTransceiver`的`createOffer`和`createAnswer`的调用，编解码器首选项仍然有效，直到再次调用此方法。将`codecs`设置为空序列将使编解码器首选项重置为所有默认值。<br>  传递给`setCodecPreferences`的`codecs`序列只能包含由`RTCRtpSender.getCapabilities(kind)`或`RTCRtpReceiver.getCapabilities(kind)`返回的编解码器，其中`kind`是调用该方法的`RTCRtpTransceiver`的类型。此外，无法修改`RTCRtpCodecCapability`字典成员。如果编解码器不满足这些要求，则用户代理必须抛出`InvalidAccessError`错误。<br>  **注意：** 根据[SDP](http://w3c.github.io/webrtc-pc/#bib-SDP)的建议，`createAnswer`的调用应只包含编解码器首选项和邀请中出现的编解码器的公共子集。例如，如果编解码器首选项为"C, B, A"，但邀请中只提供了"A, B"，则应答中只能包含"B, A"编解码器。但是[JSEP 5.3.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.3.1)允许添加不在邀请中出现的编解码器，因此具体实现可以表现得不一样。
+- *setCodecPreferences* ：`setCodecPreferences`方法会覆盖用户代理使用的默认编解码器首选项。当使用`createOffer`或`createAnswer`生成会话描述时，用户代理必须按照`codecs`参数中指定的顺序使用指定的编解码器，用于与此`RTCRtpTransceiver`对应的媒体部分。<br>  此方法允许应用程序禁用特定编解码器的协商过程。它还允许应用程序使远程对端偏好列表中首先出现的编解码器。<br>  对于所有包含此`RTCRtpTransceiver`的`createOffer`和`createAnswer`的调用，编解码器首选项仍然有效，直到再次调用此方法。将`codecs`设置为空序列将使编解码器首选项重置为所有默认值。<br>  传递给`setCodecPreferences`的`codecs`序列只能包含由`RTCRtpSender.getCapabilities(kind)`或`RTCRtpReceiver.getCapabilities(kind)`返回的编解码器，其中`kind`是调用该方法的`RTCRtpTransceiver`的类型。此外，无法修改`RTCRtpCodecCapability`字典成员。如果编解码器不满足这些要求，则用户代理必须抛出`InvalidAccessError`错误。<br>  **注意：** 根据[SDP](http://w3c.github.io/webrtc-pc/#bib-SDP)的建议，`createAnswer`的调用应只包含编解码器首选项和邀请中出现的编解码器的公共子集。例如，如果编解码器首选项为"C, B, A"，但邀请中只提供了"A, B"，则应答中只能包含"B, A"编解码器。但是[JSEP 5.3.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.3.1)允许添加不在邀请中出现的编解码器，因此具体实现可以表现得不一样。
 
 #### 5.4.1 联播功能
 
@@ -2015,7 +2015,7 @@ var encodings = [
 #### 5.4.2 "暂停"功能
 
 `direction`和`replaceTrack`两个属性使得开发者可以实现"暂停"场景。
-将音乐发送给对等端并停止呈现接收的音频：
+将音乐发送给对端并停止呈现接收的音频：
 
 ```js
 EXAMPLE 5
@@ -2033,7 +2033,7 @@ async function playMusicOnHold() {
 }
 ```
 
-响应远程对等端的"sendonly"邀请：
+响应远程对端的"sendonly"邀请：
 
 ```js
 EXAMPLE 6
@@ -2068,7 +2068,7 @@ async function stopOnHoldMusic() {
 }
 ```
 
-响应被远程对等端的取消暂停操作：
+响应被远程对端的取消暂停操作：
 
 ```js
 EXAMPLE 8
@@ -2321,7 +2321,7 @@ enum RTCIceTransportState {
 
 - new：`RTCIceTransport`正在收集候选地址和 /或正在等待远程候选地址被提供，且还未启动检查。
 - checking：`RTCIceTransport`已经收到至少一个远程候选地址，正在检查候选对，且尚未找到可用连接或许可检查[RFC7675](http://w3c.github.io/webrtc-pc/#bib-RFC7675)在先前所有成功的候选对都失败了。除了检查，它还可能仍在收集。
-- connected：`RTCIceTransport`找到了一个可用的连接，但仍在检查其他候选对，以查看是否有更好的连接。 它可能仍然在收集和/或等待其他远程候选人。如果许可检查[RFC7675]在正在使用的连接上失败，并且没有其他成功的候选对可用，则状态转换为`"checking"`（还有待检查的候选对）或`"disconnected"`（没有候选对要检查，但对等端仍在收集和/或等待其他远程候选地址）。
+- connected：`RTCIceTransport`找到了一个可用的连接，但仍在检查其他候选对，以查看是否有更好的连接。 它可能仍然在收集和/或等待其他远程候选人。如果许可检查[RFC7675]在正在使用的连接上失败，并且没有其他成功的候选对可用，则状态转换为`"checking"`（还有待检查的候选对）或`"disconnected"`（没有候选对要检查，但对端仍在收集和/或等待其他远程候选地址）。
 - completed：`RTCIceTransport`已完成收集，收到一条表明没有更多远程候选地址的指示，已完成所有候选对的检查并找到一个连接。如果许可检查[RFC7675]随后在所有成功的候选对上都失败，则状态转换为`"failed"`。
 - disconnected：ICE代理已确定此`RTCIceTransport`当前已丢失连接。这是一种瞬时状态，可能会在片状网络上间歇性地触发（并在没有其他动作的情况下自行解决）。确定此状态的方式取决于具体实现。以下是例子：
     -  丢失了正在使用的连接的网络接口。
@@ -2459,7 +2459,7 @@ partial interface RTCPeerConnection {
     10. 将 *channel* 的[DataChannelProtocol]槽初始化为 *options* 的`protocol`成员。
     11. 如果[DataChannelProtocol]长度大于65535字节，抛出一个`TypeError`。
     12. 将 *channel* 的[Negotiated]槽初始化为 *options* 的`negotiated`成员。
-    13. 若 *options* 的`id`成员存在且其[Negotiated]槽值为`true`的话，将 *channel* 的[DataChannelId]槽初始化为它，否则为`null`。 **注意：** 这意味着如果数据通道在带内协商完成，则忽略`id`成员; 这是故意所为。如[RTCWEB-DATA-PROTOCOL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)中所述，带内协商的数据通道应根据DTLS角色选择ID。
+    13. 若 *options* 的`id`成员存在且其[Negotiated]槽值为`true`的话，将 *channel* 的[DataChannelId]槽初始化为它，否则为`null`。 **注意：** 这意味着如果数据通道在频内协商完成，则忽略`id`成员; 这是故意所为。如[RTCWEB-DATA-PROTOCOL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)中所述，频内协商的数据通道应根据DTLS角色选择ID。
     14. 若[Negotiated]槽为`true`且[DataChannelId]为`null`，抛出一个`TypeError`。
     15. 将 *channel* 的[DataChannelPriority]槽初始化为 *options* 的`priority`成员。
     16. 若[MaxPacketLifeTime]和[MaxRetransmits]属性都被设置了（非空），则抛出`TypeError`。
@@ -2498,4 +2498,204 @@ partial interface RTCPeerConnection {
 
 #### 6.1.1.3 连接过程
 
-**一旦一个SCTP传输被连接** ，意味着已经与一个`RTCSctpTransport`建立了SCTP关联，
+**一旦一个SCTP传输被连接** ，意味着已经与一个`RTCSctpTransport`建立了SCTP关联，运行以下步骤：
+
+1. 设 *transport* 为上下文中的`RTCSctpTransport`对象。
+2. 设 *connection* 为与 *transport* 关联的`RTCPeerConnection`对象。
+3. 将[MaxChannels]设为协商完成的传入和传出SCTP流的最小值。
+4. 在 *transport* 上触发名为`statechange`的事件。
+5. 对 *connection* 中的每个`RTCDataChannel`对象：
+   1. 设 *channel* 为`RTCDataChannel`对象。
+   2. 如果 *channel* 的[DataChannelId]槽值大于等于 *transport* 的[MaxChannels]槽值，则将其视为一个错误并关闭 *channel* ，否则宣称 *channel* 已经开启。
+
+```webidl
+[Exposed=Window]
+interface RTCSctpTransport {
+  readonly attribute RTCDtlsTransport transport;
+  readonly attribute RTCSctpTransportState state;
+  readonly attribute unrestricted double maxMessageSize;
+  readonly attribute unsigned short? maxChannels;
+  attribute EventHandler onstatechange;
+};
+```
+
+**属性：**
+
+- RTCDtlsTransport类型的`transport`，只读：发送和接收数据通道中的所有SCTP数据包的传输。
+- RTCSctpTransportState类型的`state`，只读：SCTP传输的当前状态。请求读值时，此属性必须返回[SctpTransportState]槽的值。
+- unrestricted double类型的`maxMessageSize`，只读：可被传入`RTCDataChannel.send()`方法的最大数据代销。请求读值时，此属性必须返回[MaxMessageSize]槽的值。
+- unsigned short类型的`maxChannels`，只读，可空：可同时使用的最大`RTCDataChannel`数量。请求读值时，属性必须返回[MaxChannels]槽的值。 **注意：** 在SCTP传输转移为`connected`状态之前，此属性的值一直为`null`。
+- EventHandler类型的`onstatechange`：该事件处理器的事件类型为`statechange`。
+
+#### 6.1.2 `RTCSctpTransportState`枚举
+
+`RTCSctpTransportState`枚举代表SCTP传输的状态。
+
+```webidl
+enum RTCSctpTransportState {
+  "connecting",
+  "connected",
+  "closed"
+};
+```
+
+`RTCSctpTransportState`枚举描述：
+
+- connecting：`RTCSctpTransport`正在协商建立关联的过程中。这是`RTCSctpTransport`创建时其[SctpTransportState]槽的初始状态。
+- connected：当建立关联的协商完成时，一个将[SctpTransportState]槽更新为`"connected"`的任务将被加入操作队列。
+- closed：当收到SHUTDOWN或ABORT块或者有意关闭SCTP关联时（例如关闭对等连接或应用一个拒绝数据或更改SCTP端口的远程描述），一个将[SctpTransportState]槽更新为`"closed"`的任务将被加入操作队列。
+
+### 6.2 `RTCDataChannel`
+
+`RTCDataChannel`接口表示两个对端之间的双向数据信道。`RTCDataChannel`由`RTCPeerConnection`对象中的工厂方法创建。浏览器间发送的消息在[RTCWEB-DATA](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA)和[RTCWEB-DATA-PROTOCOL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)中有相关描述。
+
+有两种方法可以用`RTCDataChannel`建立连接。第一种方法是在其中一个对端创建一个`RTCDataChannel`，并且`RTCDataChannelInit`字典的成员`negotiated`未被设置或已设为默认值`false`。这将在频内公布新通道，并在对端上触发带有相应`RTCDataChannel`对象的`RTCDataChannelEvent`。第二种方法是让应用程序协商一个`RTCDataChannel`。为此，创建一个`RTCDataChannel`对象，将`RTCDataChannelInit`字典的成员`negotiated`设为`true`，并通过频外信号（例如通过Web服务器）向另一方发出信号，另一方应该创建一个对应的`RTCDataChannel`，其`RTCDataChannelInit`字典的 成员`negotiated`设为`true`且和通道有相同的`id`。这将连接两个单独创建的`RTCDataChannel`对象。第二种方法使得创建具有非对称属性的通道成为可能，并通过指定匹配`id`以声明方式创建通道。
+
+每个`RTCDataChannel`有一个与之关联的的 **底层数据传输** 来向对端传输实际的数据。在SCTP数据通道使用一个`RTCSctpTransport`（表示SCTP关联的状态）的情况下，底层数据传输是SCTP流对。[底层数据传输](http://w3c.github.io/webrtc-pc/#dfn-data-transport)的传输属性（例如顺序送达设置和可靠性模式）由对端在创建通道时配置。通道的属性在创建后便不再更改。端与端之间的实际有线协议由`WebRTC DataChannel`协议规范[RTCWEB-DATA](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA)指定。
+
+可将`RTCDataChannel`配置在不同的可靠性模式下操作。一个可靠的通道通过重传确保向对端送达数据。不可靠通道限制了重传次数（`maxRetransmits`）或允许传输（包括重传）的时间（`maxPacketLifeTime`）。这些属性不能同时使用，尝试这样做会导致错误。对这些属性没有限制的话即为可靠通道。
+
+使用`createDataChannel`创建或通过`RTCDataChannelEvent`调度的`RTCDataChannel`刚开始必须处于`"connecting"`状态。当`RTCDataChannel`对象的底层数据传输就绪时，用户代理必须宣称`RTCDataChannel`已开启。
+
+运行以下步骤 **创建一个`RTCDataChannel`** ：
+
+1. 设 *channel* 为新创建的`RTCDataChannel`对象。
+2. 将 *channel* 的[ReadyState]槽初始化为`"connecting"`。
+3. 将 *channel* 的[BufferedAmount]槽初始化为`0`。
+4. 为 *channel* 创建`[DataChannelLabel], [Ordered], [MaxPacketLifeTime], [MaxRetransmits], [DataChannelProtocol], [Negotiated], [DataChannelId], [DataChannelPriority]`槽。
+5. 返回 *channel* 。
+
+当用户代理 **宣称`RTCDataChannel`已开启** 时，用户代理必须将包含以下步骤的任务加入操作队列：
+
+1. 若与之关联的`RTCPeerConnection`的[IsClosed]槽为`true`，则终止后续步骤。
+2. 设 *channel* 为将要宣称为开启的`RTCDataChannel`对象。
+3. 如果 *channel* 的[ReadyState]槽为`closing`或`closed`，则终止后续步骤。
+4. 将 *channel* 的[ReadyState]槽设为`open`。
+5. 在 *channel* 上触发名为`open`的事件。
+
+当一个底层数据传输将被宣布开启时（对端创建了一个未设置`negotiated`属性或被设为`false`的通道），未启动创建过程的对端用户代理必须将包含以下步骤的任务加入操作队列：
+
+1. 若与之关联的`RTCPeerConnection`的[IsClosed]槽为`true`，则终止后续步骤。
+2. 创建一个`RTCDataChannel`，命名为 *channel* 。
+3. 设 *configuration* 为从对端接收的信息包，作为建立WebRTC数据通道协议规范[RTCWEB-DATA-PROTOCOL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)描述的底层数据传输的过程的一部分。
+4. 将 *channel* 的`[DataChannelLabel], [Ordered], [MaxPacketLifeTime], [MaxRetransmits], [DataChannelProtocol], [DataChannelId]`槽初始化为 *configuration* 中的对应值。
+5. 将 *channel* 的[Negotiated]槽设为`false`。
+6. 基于 *configuration* 中的整数优先级值初始化 *channel* 的[DataChannelPriority]槽，具体的映射关系如下：
+    | *configuration* 优先级值 | `RTCPriorityType`值 |
+    |  :--------------------: | :-----------------: |
+    |          0到128          |     very-low       |
+    |         129到256         |     low            |
+    |         257到512         |     medium         |
+    |         513及更大        |      high          |
+7. 将*channel* 的[ReadyState]设为`open`（但未触发`open`事件）。 **注意：** 这允许在触发`open`事件之前开始在`datachannel`事件处理器内发送消息。
+8. 利用`RTCDataChannelEvent`接口触发名为`datachannel`的事件，接口使用的`RTCPeerConnection`对象的`channel`属性被设为 *channel* 。
+9. 宣布数据通道已开启。
+
+通过运行**关闭程序**，可以以非突发的方式解除`RTCDataChannel`对象的底层数据传输。当这种情况发生时，用户代理必须将包含以下步骤的任务加入操作队列：
+
+1. 设 *channel* 为将要关闭传输的`RTCDataChannel`对象。
+2. 除非该过程是由 *channel* 的`close`方法启动的，否则将 *channel* 的[ReadyState]槽设为`closing`。
+3. 并行地运行以下步骤：
+   1. 结束当前 *channel* 中所有等待中的消息的发送工作。
+   2. 遵循为 *channel* 的底层传输定义的关闭过程：
+      1. 若传输基于SCTP，则遵循[RTCWEB-DATA](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA) 6.7节中的做法。
+   3. 按照相关步骤完成 *channel* 的[数据传输关闭](http://w3c.github.io/webrtc-pc/#data-transport-closed)。
+   
+当一个`RTCDataChannel`的底层数据传输 **已被关闭** ，用户代理必须将包含以下步骤的任务加入操作队列：
+
+1. 设 *channel* 为传输已关闭的`RTCDataChannel`对象。
+2. 将 *channel* 的[ReadyState]设为`closed`。
+3. 若关闭传输时 **出错** ，利用`RTCErrorEvent`接口在 *channel* 上触发名为`error`的事件，其`errorDetail`属性被设为"sctp-failure"。
+4. 在 *channel* 上触发名为`close`的事件。
+
+在某些情况下，用户代理可能 **无法创建** `RTCDataChannel`的底层数据传输。例如，数据通道的`id`可能超出SCTP握手中[RTCWEB-DATA](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA)协商好的范围。当用户代理确定无法创建`RTCDataChannel`的底层数据传输时，用户代理必须将包含以下步骤的任务加入操作队列：
+
+1. 设 *channel* 为用户代理无法创建底层数据传输的`RTCDataChannel`对象。
+2. 将 *channel* 的[ReadyState]设为`closed`。
+3. 利用`RTCErrorEvent`接口在 *channel* 上触发名为`error`的事件，其`errorDetail`属性被设为"data-channel-failure"。
+4. 在 *channel* 上触发名为`close`的事件。
+
+当通过`type`类型和`rawData`数据的底层数据传输 **接收** 到`RTCDataChannel`消息时，用户代理必须将包含以下步骤的任务加入操作队列：
+
+1. 设 *channel* 为用户代理已收到消息的`RTCDataChannel`对象。
+2. 若 *channel* 的[ReadyState]槽值不是`open`，则终止后续步骤并忽略 *rawData* 。
+3. 根据 *type* 与 *channel* 的`binaryType`的匹配结果执行以下子步骤：
+    - 若 *type* 表示 *rawData* 为`string`类型：设 *data* 为 *rawData* 经UTF-8格式解码后的DOMString。
+    - 若 *type* 表示 *rawData* 为二进制类型且`binaryType`为`"blob"`：设 *data* 为包含 *rawData* 作为原始数据源的新`Blob`对象。
+    - 若 *type* 表示 *rawData* 为二进制类型且`binaryType`为`"arrayBuffer"`：设 *data* 为包含 *rawData* 作为原始数据源的新`ArrayBuffer`对象。
+4. 利用`MessageEvent`接口触发名为`message`的事件，其`origin`属性初始化为创建了与 *channel* 关联的`RTCPeerConnection`的文档源，并且`data`属性初始化为 *channel* 上的 *data* 。
+
+```webidl
+[Exposed=Window]
+interface RTCDataChannel : EventTarget {
+  readonly attribute USVString label;
+  readonly attribute boolean ordered;
+  readonly attribute unsigned short? maxPacketLifeTime;
+  readonly attribute unsigned short? maxRetransmits;
+  readonly attribute USVString protocol;
+  readonly attribute boolean negotiated;
+  readonly attribute unsigned short? id;
+  readonly attribute RTCPriorityType priority;
+  readonly attribute RTCDataChannelState readyState;
+  readonly attribute unsigned long bufferedAmount;
+  [EnforceRange]
+  attribute unsigned long bufferedAmountLowThreshold;
+  attribute EventHandler onopen;
+  attribute EventHandler onbufferedamountlow;
+  attribute EventHandler onerror;
+  attribute EventHandler onclose;
+  void close();
+  attribute EventHandler onmessage;
+  attribute DOMString binaryType;
+  void send(USVString data);
+  void send(Blob data);
+  void send(ArrayBuffer data);
+  void send(ArrayBufferView data);
+};
+```
+
+**属性：**
+
+- USVString类型的`label`，只读：`label`属性表示被用于区分不同`RTCDataChannel`对象的标签。可以用脚本为同一标签创建多个`RTCDataChannel`对象。请求读值时，该属性必须返回[DataChannelLabel]槽的值。
+- boolean类型的`ordered`，只读：如果`RTCDataChannel`是有序的，则`ordered`属性返回`true`，如果允许按其他顺序到达，则返回`false`。请求读值时，属性必须返回[Ordered]槽的值。
+- unsigned short类型的`maxPacketLifeTime`，只读，可空：`maxPacketLifeTime`属性返回不可靠模式下可能发生传输和重传的时间窗口的长度（以毫秒为单位）。请求读值时，属性必须返回[MaxPacketLifeTime]槽的值。
+- USVString类型的`protocol`，只读：`protocol`属性返回`RTCDataChannel`中使用的子协议的名字。请求读值时，属性必须返回[DataChannelProtocol]槽的值。
+- boolean类型的`negotiated`，只读：若本`RTCDataChannel`已经由应用程序协商完毕，则`negotiated`属性返回`true`，否则返回`false`。请求读值时，属性必须返回[Negotiated]槽的值。
+- unsigned short类型的`id`，只读，可空：`id`属性返回此`RTCDataChannel`的ID。该值初始时为`null`，如果在创建通道时未提供ID，且尚未协商SCTP传输的DTLS角色，则返回`null`。否则，它将返回由脚本选择的ID或由用户代理根据[RTCWEB-DATA-PROTOCOL](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-DATA-PROTOCOL)生成的ID。ID设置为非空值后就不会被更改。请求读值时，属性必须返回[DataChannelId]槽的值。
+- RTCPriorityType类型的`priority`，只读：`priority`属性返回此`RTCDataChannel`的优先级。优先级在通道创建时由用户代理指定。请求读值时，属性必须返回[DataChannelPriority]槽的值。
+- RTCDataChannelState类型的`readyState`，只读：`readyState`属性代表`RTCDataChannel`对象的状态。请求读值时，属性必须返回[ReadyState]槽的值。
+- unsigned long类型的`bufferedAmount`，只读：请求读值时，`bufferedAmount`属性必须返回[BufferedAmount]槽的值。该属性公开通过`send()`方法加入发送队列的应用程序数据（UTF-8文本和二进制数据）的字节数。即使数据传输可以并行发生，但为了防止数据竞争，在当前任务返回事件循环之前，不得减小返回值。该值不包括协议产生的帧开销，或由操作系统/网络硬件实现的缓冲。只要[ReadyState]槽处于`open`状态，[BufferedAmount]槽的值只会随着每次调用`send()`方法而增加; 但通道关闭，槽的值也不会重置为零。当底层数据传输从其发送队列发送数据时，用户代理必须将一个任务加入操作队列，该任务将[BufferedAmount]中的值减去发送的字节数。
+- unsigned long类型的`bufferedAmountLowThreshold`：`bufferedAmountLowThreshold`属性设置`bufferedAmount`的最低阈值。当`bufferedAmount`的值减小至小于等于此阈值时，将触发`bufferedamountlow`事件。每个新`RTCDataChannel`都将`bufferedAmountLowThreshold`初始化为零，但应用程序可能随时更改其值。
+- EventHandler类型的`onopen`：该事件处理器的事件类型为`open`。
+- EventHandler类型的`onbufferedamountlow`：该事件处理器的事件类型为`bufferedamountlow`。
+- EventHandler类型的`onerror`：该事件处理器的事件类型是`RTCErrorEvent`。其`errorDetail`包含"sctp-failure"，`sctpCauseCode`包含SCTP Cause Code值，`message`包含SCTP Cause-Specific-Information，也可能包含其他文本。
+- EventHandler类型的`onclose`：该事件处理器的事件类型为`close`。
+- EventHandler类型的`onmessage`：该事件处理器的事件类型为`message`。
+- DOMString类型的`binaryType`：请求读值时，`binaryType`属性必须返回最新设置的值。请求写值时，如果新的值是`"blob"`字符串或`"arraybuffer"`字符串，则将IDL属性设为这个新值，否则抛出一个`SyntaxError`。当一个`RTCDataChannel`对象被创建，其`binaryType`属性必须被初始化为`"blob"`字符串。<br>  此属性控制脚本读取二进制数据的方式。详见[WEBSOCKETS-API](http://w3c.github.io/webrtc-pc/#bib-WEBSOCKETS-API)。
+
+**方法：**
+
+- *close* ：关闭`RTCDataChannel`。不论`RTCDataChannel`是被本端创建还是对端创建，这个方法都可以被调用。<br>  当`close`方法被调用时，用户代理必须运行以下步骤：
+    1. 设 *channel* 为即将关闭的`RTCDataChannel`对象。
+    2. 若 *channel* 的[ReadyState]值为`closing`或`closed`，则终止后续步骤。
+    3. 将 *channel* 的[ReadyState]值设为`closing`。
+    4. 若[关闭程序](http://w3c.github.io/webrtc-pc/#data-transport-closing-procedure)还未启动，则将它启动。
+- *send* ：以`string`对象作为参数，运行[send()算法](http://w3c.github.io/webrtc-pc/#dfn-send)中指定步骤。
+- *send* ：以`Blob`对象作为参数，运行[send()算法](http://w3c.github.io/webrtc-pc/#dfn-send)中指定步骤。
+- *send* ：以`ArrayBuffer`对象作为参数，运行[send()算法](http://w3c.github.io/webrtc-pc/#dfn-send)中指定步骤。
+- *send* ：以`ArrayBufferView`对象作为参数，运行[send()算法](http://w3c.github.io/webrtc-pc/#dfn-send)中指定步骤。
+
+```webidl
+dictionary RTCDataChannelInit {
+  boolean ordered = true;
+  [EnforceRange]
+  unsigned short maxPacketLifeTime;
+  [EnforceRange]
+  unsigned short maxRetransmits;
+  USVString protocol = "";
+  boolean negotiated = false;
+  [EnforceRange]
+  unsigned short id;
+  RTCPriorityType priority = "low";
+};
+```
