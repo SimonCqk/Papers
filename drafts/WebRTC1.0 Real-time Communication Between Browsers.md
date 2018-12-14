@@ -5,7 +5,7 @@
 本规范涵盖了对等通信（peer-to-peer communications）和网页视频会议的多个方面：
 
 - 利用ICE，STUN，TURN等NAT穿透技术连接至远程对等终端。
-- 将本地产生的流媒体轨发送至远程对等终端并从远程对等终端接收流媒体轨。
+- 将本地产生的媒体流发送至对端并接收对端产生的媒体流。
 - 直接向远程对等终端发送任意数据。
 
 本文档针对这些特性定义了一些API。本规范是在[IETF RTCWEB](https://datatracker.ietf.org/wg/rtcweb/)工作组的协议规范，和[Media Capture Task Force](https://www.w3.org/wiki/Media_Capture)工作组的访问本地媒体设备API规范[GEtUSERMEDIA]，两者共同催动下发展出来的。系统的概览可以在引用列表中的[RTCWEB-OVERVIW](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-OVERVIEW)和[RTCWEB-SECURITY](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-SECURITY)找到。
@@ -29,24 +29,24 @@
 **Blob** 定义在[FILEAPI](http://w3c.github.io/webrtc-pc/#bib-FILEAPI)。<br>
 **媒体描述**（media description）定义在[RFC4566](http://w3c.github.io/webrtc-pc/#bib-RFC4566)。<br>
 **媒体传输**（media transport）定义在[RFC7656](http://w3c.github.io/webrtc-pc/#bib-RFC7656)。<br>
-**代**（generation）定义在[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)的第二节。<br>
+**地址**（generation）定义在[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)的第二节。<br>
 **RTCStatsType，stats object和monitored object** 定义在[WEBRTC-STATS](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-STATS)。<br>
 当引入异常时，[WEBIDL-1](http://w3c.github.io/webrtc-pc/#bib-WEBIDL-1)中定义了 **throw和create**。<br>
 "throw"作为[INFRA](http://w3c.github.io/webrtc-pc/#bib-INFRA)中的规定来使用：它会终止目前正在运行的操作。<br>
 `Promises`的上下文中使用的 **fulfilled, rejected, resolved, pending和settled** 在[ECMASCRIPT-6.0](http://w3c.github.io/webrtc-pc/#bib-ECMASCRIPT-6.0)中定义。<br>
-**捆绑**（bundle），**只捆绑**（bundle-only）和**捆绑策略**（bundle-only）在[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)中定义。<br>
+**捆绑**（bundle），**只捆绑**（bundle-only）和**捆绑策略**（bundle-policy）在[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)中定义。<br>
 **OAuth客户端**（OAuth Client）和**授权服务**（Authorization Server）在[RFC6749](http://w3c.github.io/webrtc-pc/#bib-RFC6749)的1.1节被定义。<br>
-**隔离流**（isolated stream），**对等身份**（peer identity），**请求身份断言**（request an identity assertion）和**身份认证**（validate the identity）在[WEBRTC-IDENTITY](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-IDENTITY)中定义。
+**隔离流**（isolated stream），**对等身份**（peer identity），**身份声明请求**（request an identity assertion）和**身份认证**（validate the identity）在[WEBRTC-IDENTITY](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-IDENTITY)中定义。
 
 > 注意：
-> 通常使用Javascript API的原则包括：`持续运行直到完成`和`无数据竞争`，它们都在[API-DESIGN-PRINCIPLES](http://w3c.github.io/webrtc-pc/#bib-API-DESIGN-PRINCIPLES)中定义了。也就是说，当一个任务正在运行时，任何外部事件都不会影响Javascript应用的可见性。例如，当Javascript执行时，缓存在数据通道里的数据数量将会随着"send"的调用而增长，并且直到任务的检查点之后，由于发送数据包导致的减少才被应用可见。
+> 通常使用Javascript API的原则包括：`同步运行`和`数据独立`，它们都在[API-DESIGN-PRINCIPLES](http://w3c.github.io/webrtc-pc/#bib-API-DESIGN-PRINCIPLES)中定义了。也就是说，当一个任务正在运行时，任何外部事件都不会影响Javascript应用的可见性。例如，当Javascript执行时，缓存在数据通道里的数据数量将会随着"send"的调用而增长，并且直到任务的检查点之后，由于发送数据包导致的减少才被应用可见。
 > 用户代理负责确保呈现给应用程序的的数据是一致的——例如`getContributingSources()`（同步调用）会返回当前所有被检测的数据源的值。
 
 ## 4. 对等连接
 
 ### 4.1 介绍
 
-一个[RTCPeerConnection](http://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection)实例允许与另一个浏览器，或实现了制定协议的终端中的`RTCPeerConnection`实例建立对等通信。通信的过程通过交换信号通道中的控制信息（被称为信令协议）来协调，信号通道并没有明确的制定，但通常是服务页面中的一段脚本，例如[XMLHttpRequest](http://w3c.github.io/webrtc-pc/#bib-XMLHttpRequest)，也可以是[WebSockets](http://w3c.github.io/webrtc-pc/#bib-WEBSOCKETS-API)。
+一个[RTCPeerConnection](http://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection)实例允许与另一个浏览器，或实现了制定协议的终端中的`RTCPeerConnection`实例建立对等通信。双方在信令通道中通过控制消息（即自定义的信令协议）协商会话，信号通道并没有明确的制定，但通常是服务页面中的一段脚本，例如[XMLHttpRequest](http://w3c.github.io/webrtc-pc/#bib-XMLHttpRequest)，也可以是[WebSockets](http://w3c.github.io/webrtc-pc/#bib-WEBSOCKETS-API)。
 
 ### 4.2 配置
 
@@ -136,7 +136,7 @@ dictionary RTCIceServer {
 - DOMString或sequence<DOMString>类型的`urls`，非空：[RFC7064]和[RFC7065]中定义的STUN/TURN的URI(s)，或其他的URI类型。
 - DOMString类型的`username`：如果`RTCIceServer`代表了一个TURN服务器，且`credentialType`是`"password"`，那么这一属性指定的是TURN服务器使用的用户名。<br>  如果`RTCIceServer`代表了一个TURN服务器，且`credentialType`是`"oauth"`，那么这一属性指定的是TURN服务器和认证服务器之间共享的对称密钥的密钥id，[RFC7635](https://www.w3.org/TR/webrtc/#bib-RFC7635)有相关描述。这是一个短暂且唯一的密钥标识符。`kid`允许TURN服务器选择合适的密钥材料对访问令牌进行解密，因此以`kid`为代表的密钥标识符被用于"access_token"的加密。`kid`值和OAuth响应中的"kid"参数相同，这被定义在[RFC7515](https://www.w3.org/TR/webrtc/#bib-RFC7515)的4.1.4节。
 - DOMString或RTCOAuthCredential类型的`credential`：如果`RTCIceServer`代表了一个TURN服务器，那么这一属性指定的是TURN服务器使用的证书。<br> 如果`credentialType`是`"password"`，那么`credential`是`DOMString`类型，代表了长期使用的认证密码，这在[RFC5389](https://www.w3.org/TR/webrtc/#bib-RFC5389)的10.2节有相关描述。<br>  如果`credentialType`是`"oauth"`，那么`credential`是`RTCOAuthCredential`类型，包含了OAuth访问令牌和MAC值。
-- RTCIceCredentialType类型的`credentialType`，默认值为"password"：如果`RTCIceServer`代表了一个TURN服务器，那么这一属性指定了当TURN服务器请求认证的时候*credential*是如何被使用的。
+- RTCIceCredentialType类型的`credentialType`，默认值为"password"：如果`RTCIceServer`代表了一个TURN服务器，那么这一属性在TURN服务器需要认证客户端时使用。
 
 一个RTCIceServer对象数组的例子：
 
@@ -159,7 +159,7 @@ dictionary RTCIceServer {
 
 #### 4.2.5 `RTCIceTransportPolicy`枚举值
 
-如[JSEP](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.1)4.1.1节所定义，如果`RTCConfiguration`的`iceTransportPolicy`成员被指定，它将定义浏览器使用的ICE候选策略[JSEP 3.5.3节](https://www.w3.org/TR/webrtc/#bib-JSEP)，以向应用供应允许的候选项；只有候选项可被用于连接性检查。
+如[JSEP](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.1)4.1.1节所定义，如果`RTCConfiguration`的`iceTransportPolicy`成员被指定，它将指示浏览器获取ICE候选地址的策略，定义在[JSEP 3.5.3节](https://www.w3.org/TR/webrtc/#bib-JSEP)，浏览器只会收集特定的候选地址用于连接性检查。
 
 ```webidl
 enum RTCIceTransportPolicy {
@@ -170,12 +170,12 @@ enum RTCIceTransportPolicy {
 
 枚举值的非规范描述：
 
-- relay：ICE Agent仅适用媒体中级候选项，例如通过TURN服务器传递的候选项。**注意：这可以在某些特定场景下防止远程终端获取用户的IP地址。例如，在一个基于“调用”的应用中，应用可能想防止某个未知的调用者获得被调用方得IP地址，除非被调用方以某些同意。**
-- all：当被指定为"all"时，ICE Agent可以使用任意类型的候选项。**注意：在具体实现中，仍然可以使用自己的候选项过渡策略来限制暴露给应用的IP地址，这在RTCIceCandidate.address中有提到。**
+- relay：ICE Agent仅获取媒体中继ice候选地址，例如通过TURN服务器传递的ice候选地址。**注意：该配置表明只收集中继服务器分配的ice候选地址，这可以在某些特定场景下防止远程终端获取该用户的真实IP地址。例如，在一个基于“调用”的应用中，应用可能想防止某个未知的调用者获得被调用方得IP地址，除非被调用方以某些同意。**
+- all：当被指定为"all"时，ICE Agent可以使用任意类型的候选地址。**注意：在具体实现中，仍然可以使用自己的候选地址过渡策略来限制暴露给应用的IP地址，这在RTCIceCandidate.address中有提到。**
 
 #### 4.2.6 `RTCBundlePolicy`枚举值
 
-如[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)提到，如果远程端点不支持捆绑，则捆绑策略会影响哪些媒体轨参与协商，以及哪些ICE候选项被收集。如果远程端点支持捆绑，所有媒体轨和数据通道都会被捆绑到同一传输路径上。
+如[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)提到，如果远程端点不支持捆绑，则捆绑策略会影响哪些媒体轨参与协商，以及哪些ICE候选地址被收集。如果远程端点支持捆绑，所有媒体轨和数据通道都会被捆绑到同一传输路径上。
 
 ```webidl
 enum RTCBundlePolicy {
@@ -187,13 +187,13 @@ enum RTCBundlePolicy {
 
 枚举值的非规范描述：
 
-- balanced：为所有正在使用中的媒体类型（音频，视频和数据）收集ICE候选项。如果远程端点不支持捆绑，则只会为每个独立的传输协商一个音频或视频。
-- max-compat：为每个流媒体轨收集ICE候选项。如果远程端点不支持捆绑，为每个独立传输协商所有的媒体轨。
-- max-bundle：只为一个媒体轨收集ICE候选项。如果远程端点不支持捆绑，只协商一个媒体轨。
+- balanced：为所有正在使用中的媒体类型（音频，视频和数据）收集ICE候选地址。如果远程端点不支持捆绑，则只会为每个独立的传输协商一个音频或视频。
+- max-compat：为每个流媒体轨收集ICE候选地址。如果远程端点不支持捆绑，为每个独立传输协商所有的媒体轨。
+- max-bundle：只为一个媒体轨收集ICE候选地址。如果远程端点不支持捆绑，只协商一个媒体轨。
 
 #### 4.2.7 `RTCRtcpMuxPolicy`枚举值
 
-如[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)中描述的，RtcpMuxPolicy会影响ICE候选项收集哪些内容以支持非多路复用RTCP。
+如[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)中描述的，RtcpMuxPolicy会影响ICE候选地址收集哪些内容以支持非多路复用RTCP。
 
 ```webidl
 enum RTCRtcpMuxPolicy {
@@ -205,8 +205,8 @@ enum RTCRtcpMuxPolicy {
 
 枚举值的非规范描述：
 
-- negotiate：同时收集RTP候选项和RTCP候选项。如果远程端点能够复用RTCP，则在RTP候选项之上复用RTCP。如果不能，独立地使用RTP和RTCP候选项。注意，[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)提到，用户代理可能没有实现不复用的RTCP，在这种情况下所有试图以`negotiate`策略构造`RTCPeerConnection`的操作都会被拒绝。
-- require：只收集RTC候选项和在RTP基础上复用了RTCP的候选项。如果远程端点不支持rtcp复用，那么会话协商将失败。
+- negotiate：同时收集RTP候选地址和RTCP候选地址。如果远程端点能够复用RTCP，则在RTP候选地址之上复用RTCP。如果不能，独立地使用RTP和RTCP候选地址。注意，[JSEP 4.1.1节](https://www.w3.org/TR/webrtc/#bib-JSEP)提到，用户代理可能没有实现不复用的RTCP，在这种情况下所有试图以`negotiate`策略构造`RTCPeerConnection`的操作都会被拒绝。
+- require：只收集RTC候选地址和在RTP基础上复用了RTCP的候选地址。如果远程端点不支持rtcp复用，那么会话协商将失败。
 
 > <big>风险特征</big>：支持非多路复用RTP/RTCP的本规范的各个方面被标记为存在风险的特征，因为实现者没有明确的承诺。包括：1. 对于`negotiate`值，实现者没有明确承诺与此相关的行为。 2.在`RTCRtpSender`和`RTCRtpReceiver`之内支持`rtcpTransport`属性。
 
@@ -314,9 +314,9 @@ enum RTCPeerConnectionState {
 
 枚举类型描述：
 
-- new：所有`RTCIceTransport`或`RTCDtlsTranport`都在"new"状态，且没有任何一个处于"connecting"，"checking"，"failed"，"disconnected"状态，也可以是所有传输都处于"closed"状态，或当前还没有传输。
+- new：所有`RTCIceTransport`和`RTCDtlsTranport`都在"new"状态，且没有任何一个处于"connecting"，"checking"，"failed"，"disconnected"状态，也可以是所有传输都处于"closed"状态，或当前还没有传输。
 - connecting：所有`RTCIceTransport`或`RTCDtlsTranport`都在"connecting"或"checking"状态，且没有一个处于"failed"状态。
-- connected：所有`RTCIceTransport`或`RTCDtlsTranport`都在"connected"，"completed"或"closed"状态，且其中至少有一个处于"connected"或"completed"状态。
+- connected：所有`RTCIceTransport`和`RTCDtlsTranport`都在"connected"，"completed"或"closed"状态，且其中至少有一个处于"connected"或"completed"状态。
 - disconnected：所有`RTCIceTransport`或`RTCDtlsTranport`都在"disconnected"状态，且没有一个处于"failed"，"connecting"或"checking"状态。
 - failed：所有`RTCIceTransport`或`RTCDtlsTranport`都在"failed"状态。
 - closed：`RTCPeerConnection`对象的[IsClosed]槽为值true。
@@ -354,7 +354,7 @@ enum RTCIceConnectionState {
 #### 4.4.1 操作
 
 调用`new RTCPeerConnection(configuration)`创建一个`RTCPeerConnection`对象。
-`configuration.servers`包含了ICE用以探测并访问服务器的相关信息。应用可以为同一类型的服务供应多个实例，并且任何TURN服务器也可以用作STUN服务器，用于收集服务器自反候选项。
+`configuration.servers`包含了ICE用以探测并访问服务器的相关信息。应用可以为同一类型的服务供应多个实例，并且任何TURN服务器也可以用作STUN服务器，用于收集服务器自反候选地址。
 一个`RTCPeerConnection`对象持有 **信令状态，连接状态，ICE收集状态和ICE连接状态** 四个状态。它们在对象创建时被初始化。
 `RTCPeerConnection`的ICE协议实现部分用 **ICE agent** 来表示。`RTCPeerConnection`中与[ICE Agent](http://w3c.github.io/webrtc-pc/#dfn-ice-agent)交互的方法被分别命名为：` addIceCandidate, setConfiguration, setLocalDescription, setRemoteDescription和close`。与这些交互相关的小节都被记录在[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)文档中。ICE Agent同样向用户代理指示了代表其内部的`RTCIceTransport`状态何时发生变化，这在[5.6 RTCIceTransport Interface](http://w3c.github.io/webrtc-pc/#rtcicetransport)。本节中列举的任务源即网络任务源[networking task source](https://www.w3.org/TR/html51/webappapis.html#networking-task-source)
 
@@ -422,9 +422,9 @@ enum RTCIceConnectionState {
 2. `newState`变量值即`RTCIceGatheringState`枚举值中派生的新状态值。
 3. 如果 *connection* 的ICE收集状态与`newState`值相同，终止以下步骤。
 4. 触发此 *connection* 的`icegatheringstatechange`事件。
-5. 如果`newState`值为`"completed"`，使用`RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件，其候选项属性设为`null`。
+5. 如果`newState`值为`"completed"`，使用`RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件，其候选地址属性设为`null`。
 
-> 注意：触发候选项属性为`null`的事件是为了确保传统兼容性。新代码应该监控收集`RTCIceTransport`或`RTCPeerConnection`的状态。
+> 注意：触发候选地址属性为`null`的事件是为了确保传统兼容性。新代码应该监控收集`RTCIceTransport`或`RTCPeerConnection`的状态。
 
 #### *4.4.1.5 更新ICE连接状态*
 
@@ -489,7 +489,7 @@ enum RTCIceConnectionState {
                     9. *transceiver.[Receiver].[ReceiverRtcpTransport]* rtcpTransport。
                 2. 设 *transceiver* 为已与媒体描述关联的`RTCRtpTransceiver`。
                 3. 如果 *transceiver* 的[Stopped]槽值为`true`，则终止以下子步骤。
-                4. 设 *direction* 为代表媒体描述方向的`RTCRtpTransceiverDirection`值。
+                4. 设 *direction* 为表示媒体收发方向的`RTCRtpTransceiverDirection`值。
                 5. 如果 *direction* 值为`sendrecv`或`recvonly`，则将 *transceiver* 的[Receptive]槽的值设为`true`，否则设为`false`。
                 6. 如果 *description* 的类型为`answer`或`pranswer`，则运行以下步骤：
                     1. 如果 *direction* 值为`sendonly`或`inactive`，且 *transceiver* 的[FiredDirection]槽值为`sendrecv`或`recvonly`，则继续运行以下步骤：
@@ -548,7 +548,7 @@ enum RTCIceConnectionState {
 6.  如果`configuration.rtcpMuxPolicy`已被设置，且其值与连接的rtcpMux策略不同，则抛出一个`InvalidModificationError`。如果策略为`negotiate`且用户代理没有实现非多路复用的RTCP，则抛出一个`NotSupportedError`。
 7.  如果`configuration.iceCandidatePoolSize`已被设置，其值与连接先前使用的对应值不同，且`setLocalDescription`方法已被调用了，则抛出一个`InvalidModificationError`。
 8.  将ICE代理的 **ICE传输设置** 值设为`configuration.iceTransportPolicy`。[JSEP 4.1.16](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.16)中定义，如果新的ICE传输设置改变了现有的设置，则在下一收集阶段之前都不会有新的操作执行。如果某段脚本希望立即被执行，则应该先重启ICE。
-9.  JSEP 3.5.4 & 4.1.1中定义，将ICE代理预先获取的ICE候选池大小设为`configuration.iceCandidatePoolSize`的值。如果新的ICE候选池大小改变了现有的设置，可能会导致为候选池立刻开始收集新的候选项，或忽略池中现有的候选项。
+9.  JSEP 3.5.4 & 4.1.1中定义，将ICE代理预先获取的ICE候选池大小设为`configuration.iceCandidatePoolSize`的值。如果新的ICE候选池大小改变了现有的设置，可能会导致为候选池立刻开始收集新的候选地址，或忽略池中现有的候选地址。
 10. 将 *validatedServers* 设为一个空列表。
 11. 如果`configuration.iceServers`已被定义，则对其的每个元素执行以下步骤：
     1.  *server* 即当前列表中的元素。
@@ -563,7 +563,7 @@ enum RTCIceConnectionState {
     6. 将 *server* 追加到 *validatedServers* 。
     
     使 *validatedServers* 成为ICE代理的 **ICE服务器列表** 。
-    如[JSEP 4.1.16](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.16)定义的，如果一个新的服务器列表取代了当前ICE代理的服务器列表，下一收集阶段之前都不会有动作执行。如果某段脚本希望立即被执行，则应该先重启ICE。无论如何，如果ICE候选池的大小非零，所有现有的池内候选项都会被忽略，新的候选项会从新服务器中收集。
+    如[JSEP 4.1.16](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.16)定义的，如果一个新的服务器列表取代了当前ICE代理的服务器列表，下一收集阶段之前都不会有动作执行。如果某段脚本希望立即被执行，则应该先重启ICE。无论如何，如果ICE候选池的大小非零，所有现有的池内候选地址都会被忽略，新的候选地址会从新服务器中收集。
 12. 将当前配置保存至内部的[Configuration]槽。
 
 ### 4.4.2 接口定义
@@ -610,17 +610,17 @@ interface RTCPeerConnection : EventTarget {
 
 **属性：**
 
-- RTCSessionDescription类型的`localDescription`，只读，可空：如果[PendingLocalDescription]槽非空，则`localDescription`属性必须返回它，否则返回[CurrentLocalDescription]。<br>  注意，[CurrentLocalDescription].sdp和[PendingLocalDescription].sdp与传入`setLocalDescription`的SDP值不必是字符串值相等的（例如，SDP可能被解析后又格式化了，或ICE候选项有新增）。
-- RTCSessionDescription类型的`currentLocalDescription`，只读，可空：`currentLocalDescription`属性必须返回[CurrentLocalDescription]槽的内容。<br>  它代表了上次`RTCPeerConnection`转化为稳定状态时成功协商好的本地描述，以及创建邀请/应答以来ICE代理生成的所有本地候选项。
-- RTCSessionDescription类型的`pendingLocalDescription`，只读，可空：`pendingLocalDescription`属性必须返回[PendingLocalDescription]槽的内容。<br>  它代表了正在协商过程中的本地描述，以及创建邀请/应答以来ICE代理生成的所有本地候选项。如果`RTCPeerConnection`正处于稳定状态，则此值为`null`。
-- `RTCSessionDescription`类型的`remoteDescription`，只读，可空：如果[PendingRemoteDescription]槽非空，则`remoteDescription`属性必须返回它，否则返回[CurrentRemoteDescription]。<br>   注意，[CurrentRemoteDescription].sdp和[PendingRemoteDescription].sdp与传入`setRemoteDescription`的SDP值不必是字符串值相等的（例如，SDP可能被解析后又格式化了，或ICE候选项有新增）。
-- RTCSessionDescription类型的`currentRemoteDescription`，只读，可空：它代表了上次`RTCPeerConnection`转化为稳定状态时成功协商好的远程描述，以及创建邀请/应答以来通过`addIceCandidate()`方法提供的所有远程候选项。
-- RTCSessionDescription类型的`pendingRemoteDescription`，只读，可空：`pendingRetmoteDescription`属性必须返回[PendingRemoteDescription]槽的内容。<br>  它代表了正在协商过程中的远程描述，以及创建邀请/应答以来通过`addIceCandidate()`方法提供的所有远程候选项。。如果`RTCPeerConnection`正处于稳定状态，则此值为`null`。
+- RTCSessionDescription类型的`localDescription`，只读，可空：如果[PendingLocalDescription]槽非空，则`localDescription`属性必须返回它，否则返回[CurrentLocalDescription]。<br>  注意，[CurrentLocalDescription].sdp和[PendingLocalDescription].sdp与传入`setLocalDescription`的SDP值不必是字符串值相等的（例如，SDP可能被解析后又格式化了，或ICE候选地址有新增）。
+- RTCSessionDescription类型的`currentLocalDescription`，只读，可空：`currentLocalDescription`属性必须返回[CurrentLocalDescription]槽的内容。<br>  它代表了上次`RTCPeerConnection`转化为稳定状态时成功协商好的本地描述，以及创建邀请/应答以来ICE代理生成的所有本地候选地址。
+- RTCSessionDescription类型的`pendingLocalDescription`，只读，可空：`pendingLocalDescription`属性必须返回[PendingLocalDescription]槽的内容。<br>  它代表了正在协商过程中的本地描述，以及创建邀请/应答以来ICE代理生成的所有本地候选地址。如果`RTCPeerConnection`正处于稳定状态，则此值为`null`。
+- `RTCSessionDescription`类型的`remoteDescription`，只读，可空：如果[PendingRemoteDescription]槽非空，则`remoteDescription`属性必须返回它，否则返回[CurrentRemoteDescription]。<br>   注意，[CurrentRemoteDescription].sdp和[PendingRemoteDescription].sdp与传入`setRemoteDescription`的SDP值不必是字符串值相等的（例如，SDP可能被解析后又格式化了，或ICE候选地址有新增）。
+- RTCSessionDescription类型的`currentRemoteDescription`，只读，可空：它代表了上次`RTCPeerConnection`转化为稳定状态时成功协商好的远程描述，以及创建邀请/应答以来通过`addIceCandidate()`方法提供的所有远程候选地址。
+- RTCSessionDescription类型的`pendingRemoteDescription`，只读，可空：`pendingRetmoteDescription`属性必须返回[PendingRemoteDescription]槽的内容。<br>  它代表了正在协商过程中的远程描述，以及创建邀请/应答以来通过`addIceCandidate()`方法提供的所有远程候选地址。。如果`RTCPeerConnection`正处于稳定状态，则此值为`null`。
 - RTCSignalingState类型的`signalingState`，只读：`signalingState`属性必须返回`RTCPeerConnection`对象的信令状态。
 - RTCIceGatheringState类型的`iceGatheringState`，只读：`iceGatheringState`属性必须返回`RTCPeerConnection`实例的ICE收集状态。
 - RTCIceConnectionState类型的`iceConnectionState`，只读：`iceConnectionState`属性必须返回`RTCPeerConnection`实例的ICE连接状态。
 - RTCPeerConnectionState类型的`connectionState`，只读：`connectionState`属性必须返回`RTCPeerConnection`实例的连接状态。
-- boolean类型的`canTrickleIceCandidates`，只读，可空：`canTrickleIceCandidates`属性指示了远程对等连接是否能够接受滴滤的ICE候选项[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)。这个值根据远程描述是否支持滴滤ICE来确定，[JSEP 4.1.15](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.15)有相关描述。在`setRemoteDescription`调用完成之前，此值为`null`。
+- boolean类型的`canTrickleIceCandidates`，只读，可空：`canTrickleIceCandidates`属性指示了远程对等连接是否能够接受递增式的ICE候选地址[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)。这个值根据远程描述是否支持递增式ICE来确定，[JSEP 4.1.15](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.15)有相关描述。在`setRemoteDescription`调用完成之前，此值为`null`。
 - EventHandler类型的`onnegotiationneeded`：此事件处理器的事件类型为`negotiationneeded`。
 - EventHnadler类型的`onicecandidate`：此事件处理器的事件类型为` icecandidate`。
 - EventHnadler类型的`onicecandidateerror`：此事件处理器的事件类型为`icecandidateerror`。
@@ -631,10 +631,10 @@ interface RTCPeerConnection : EventTarget {
 
 **方法：**
 
-- **createOffer** ：`createOffer`方法生成一个包含符合[RFC 3264]邀请规范的SDP blob对象，附带会话支持的配置，包括附加到本`RTCPeerConnection`的本地`MediaStreamTrack`对象的描述，本实现支持的编解码器/RTP/RTCP功能，ICE代理的参数以及DTLS连接。`options`参数也许会用于在邀请生成后施加额外的控制。<br> 如果系统对资源作了限制（例如有限个数的解码器），`createOffer`需要返回反映当前系统状态的一个邀请，这样当它尝试获取对应资源的时候`setLocalDescription`方法可以调用成功。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  为了生成[JSEP]中定义的邀请，创建SDP必须遵循一套合适的流程。对于一个邀请，生成的SDP包含会话支持的编解码器/RTP/RTCP全套功能（对应的应答只包含一个特定的子集）。在会话建立后的`createOffer`调用事件中，`createOffer`将生成一个兼容当前会话的邀请，包含自上次完整的邀约-答复以来对会话所做的所有更改，例如媒体轨的增加或删除。如果没有更改发生，邀请将包含当前本地描述的功能以及未来可以通过协商达成的附加功能。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选项。<br> `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的证书。这些证书和其他默认证书一起生成证书指纹集合。这些证书指纹将被用于SDP的构造以及请求身份断言时的输入。<br>  如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份断言，则会话描述 *SHALL* 将包含一个合适的断言。<br>  SDP的创建过程暴露了底层系统的一部分媒体功能，它在设备上能提供持久的跨源信息。因此，它增加了应用的指纹表面。在隐私敏感的上下文中，浏览器可以考虑放缓，例如仅生成与SDP匹配的公共功能子集。（这是指纹向量）。<br>  当此方法被调用，用户代理必须运行以下步骤：<br>
+- **createOffer** ：`createOffer`方法生成一个包含符合[RFC 3264]邀请规范的SDP blob对象，附带会话支持的配置，包括附加到本`RTCPeerConnection`的本地`MediaStreamTrack`对象的描述，本实现支持的编解码器/RTP/RTCP功能，ICE代理的参数以及DTLS连接。`options`参数也许会用于在邀请生成后施加额外的控制。<br> 如果系统对资源作了限制（例如有限个数的解码器），`createOffer`需要返回反映当前系统状态的一个邀请，这样当它尝试获取对应资源的时候`setLocalDescription`方法可以调用成功。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  为了生成[JSEP]中定义的邀请，创建SDP必须遵循一套合适的流程。对于一个邀请，生成的SDP包含会话支持的编解码器/RTP/RTCP全套功能（对应的应答只包含一个特定的子集）。在会话建立后的`createOffer`调用事件中，`createOffer`将生成一个兼容当前会话的邀请，包含自上次完整的邀约-答复以来对会话所做的所有更改，例如媒体轨的增加或删除。如果没有更改发生，邀请将包含当前本地描述的功能以及未来可以通过协商达成的附加功能。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选地址。<br> `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的证书。这些证书和其他默认证书一起生成证书指纹集合。这些证书指纹将被用于SDP的构造以及请求身份声明时的输入。<br>  如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份声明，则会话描述 *SHALL* 将包含一个合适的断言。<br>  SDP的创建过程暴露了底层系统的一部分媒体功能，它在设备上能提供持久的跨源信息。因此，它增加了应用的指纹表面。在隐私敏感的上下文中，浏览器可以考虑放缓，例如仅生成与SDP匹配的公共功能子集。（这是指纹向量）。<br>  当此方法被调用，用户代理必须运行以下步骤：<br>
     1. *connection* 即调用此方法的`RTCPeerConnection`对象。
     2. 如果 *connection* 的[IsClosed]槽为`true`，则返回一个用新创建的`InvalidStateErrror`拒绝的`promise`对象。
-    3. 如果 *connection* 配置了身份提供方，且连接没有正式建立，则开启身份断言请求。
+    3. 如果 *connection* 配置了身份提供方，且连接没有正式建立，则开启身份声明请求。
     4. 将以下操作加入 *connection* 的操作队列，并返回结果：
         1. *p* 即`promise`对象。
         2. 并行开启创建邀请。
@@ -642,22 +642,22 @@ interface RTCPeerConnection : EventTarget {
 给定`promise`对象 *p* ，**创建邀请** 的步骤如下：
     1. 如果 *connection* 没有通过证书集合创建，或某个证书还没被生成，则等待直到生成完毕。
     2. 若 *connection* 配置了身份提供方，则命名为 *provider* ，否则 *provider* 为`null`。
-    3. 若 *provider* 非空，等待身份断言过程结束。
-    4. 如果 *provider* 身份断言失败，则以一个新创建的`NotReadableError`拒绝 *p* 并终止后续步骤。
+    3. 若 *provider* 非空，等待身份声明过程结束。
+    4. 如果 *provider* 身份声明失败，则以一个新创建的`NotReadableError`拒绝 *p* 并终止后续步骤。
     5. 检查系统状态，确定当前可用的资源足够生成邀请，这在[JSEP 4.1.6](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.6)有定义。
     6. 如果因为任何原因检查失败，以一个新创建的`OperationError`拒绝 *p* 并终止后续步骤。
     7. 将包含[创建邀请的最终步骤](http://w3c.github.io/webrtc-pc/#dfn-final-steps-to-create-an-offer)的任务加入队列。
 promise *p* 中 **创建邀请的最终步骤** 包含以下：
     1. 如果 *connection* 的[IsClosed]槽为`true`，则终止以下步骤。
     2. 如果以某种方式修改了 *connection* ，则需要额外检查系统状态，或者如果连接配置的身份提供方不再是 *provider* ，则在 *p* 中重新开始创建邀请的过程，并终止以下步骤。 **注意：这一步可能很重要，例如，当连接中只有一个音频`RTCRtpTransceiver`对象时，`createOffer`被调用了，但当并行执行创建邀请的过程中，一个视频`RTCRtpTransceiver`对象被附加到连接上，这时候就需要检查视频系统资源。**
-    3. 从先前的检查中获取信息，包括 *connection* 的当前状态及其`RTCRtpTranceiver`列表， 来自 *provider* （若非空）的身份断言，然后生成一个SDP邀请， *sdpString* ，这在[JSEP 5.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2)中又定义。
+    3. 从先前的检查中获取信息，包括 *connection* 的当前状态及其`RTCRtpTranceiver`列表， 来自 *provider* （若非空）的身份声明，然后生成一个SDP邀请， *sdpString* ，这在[JSEP 5.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2)中又定义。
     4. 设 *offer* 为新创建的`RTCSessionDescriptionInit`字典，其`type`成员被初始化为`"offer"`字符串，`sdp`成员被初始化为 *sdpString* 。
     5. 将内部的[LastOffer]槽设为 *sdpString* 。
     6. 用 *offer* 解析 *p* 。
-- **createAnswer**：`createAnswer`方法生成了一个包含与远程配置中的参数兼容的会话配置的[SDP]应答。就像`createOffer`，返回的SDP blob对象包含了附加到本`RTCPeerConnection`的本地`MediaStreamTracks`描述，与本会话协商好的编解码器/RTP/RTCP选项以及ICE代理收集到的所有候选项。`options`参数也许会用于在应答生成后施加额外的控制。<br>  就像`createOffer`，返回的描述应该能反应当前的系统状态。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  对于一个应答，生成的SDP应该包含特定的编解码器/RTP/RTCP配置，以及对应的邀请，邀请指定了如何建立媒体平面。生成的SDP必须按照[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)中定义的过程来生成应答。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选项。<br>  `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的证书。这些证书和其他默认证书一起生成证书指纹集合。这些证书指纹将被用于SDP的构造以及请求身份断言时的输入。<br>  如[JSEP 4.1.8.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.8.1)定义，应答可以通过设置`type`成员为`pranswer`来标记为临时的。<br>   如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份断言，则会话描述 *SHALL* 将包含一个合适的断言。<br>  当方法被调用，用户代理必须运行以下步骤：<br>
+- **createAnswer**：`createAnswer`方法生成了一个包含与远程配置中的参数兼容的会话配置的[SDP]应答。就像`createOffer`，返回的SDP blob对象包含了附加到本`RTCPeerConnection`的本地`MediaStreamTracks`描述，与本会话协商好的编解码器/RTP/RTCP选项以及ICE代理收集到的所有候选地址。`options`参数也许会用于在应答生成后施加额外的控制。<br>  就像`createOffer`，返回的描述应该能反应当前的系统状态。会话描述必须保证至少在`promise`对象的回调函数返回前`setLocalDescription`调用不会抛出错误，在此期间一直保持可用。<br>  对于一个应答，生成的SDP应该包含特定的编解码器/RTP/RTCP配置，以及对应的邀请，邀请指定了如何建立媒体平面。生成的SDP必须按照[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)中定义的过程来生成应答。<br>  生成的SDP同样包含ICE代理的`usernameFragment, password`及ICE选项（[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)  14节中定义），也可能包含代理收集的任何本地候选地址。<br>  `RTCPeerConnection`对象 *configuration* 中的`certificates`值提供了应用配置的证书。这些证书和其他默认证书一起生成证书指纹集合。这些证书指纹将被用于SDP的构造以及请求身份声明时的输入。<br>  如[JSEP 4.1.8.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.8.1)定义，应答可以通过设置`type`成员为`pranswer`来标记为临时的。<br>   如果`RTCPeerConnection`被配置用于调用`setIdentityProvider`生成身份声明，则会话描述 *SHALL* 将包含一个合适的断言。<br>  当方法被调用，用户代理必须运行以下步骤：<br>
     1. *connection* 即调用此方法的`RTCPeerConnection`对象。
     2. 如果 *connection* 的[IsClosed]槽为`true`，则返回一个用新创建的`InvalidStateErrror`拒绝的`promise`对象。
-    3. 如果 *connection* 配置了身份提供方，且连接没有正式建立，则开启身份断言请求。
+    3. 如果 *connection* 配置了身份提供方，且连接没有正式建立，则开启身份声明请求。
     4. 将以下操作加入 *connection* 的操作队列，并返回结果：
         1. 如果 *connection* 的信令状态并非`"have-remote-offer"` 或`"have-local-pranswer"`，返回一个用新创建的`InvalidStateError`拒绝的`promise`对象。
         2. *p* 即`promise`对象。
@@ -666,26 +666,26 @@ promise *p* 中 **创建邀请的最终步骤** 包含以下：
 给定`promise`对象 *p* ，**创建应答** 的步骤如下：
     1. 如果 *connection* 没有通过证书集合创建，或某个证书还没被生成，则等待直到生成完毕。
     2. 若 *connection* 配置了身份提供方，则命名为 *provider* ，否则 *provider* 为`null`。
-    3. 若 *provider* 非空，等待身份断言过程结束。
-    4. 如果 *provider* 身份断言失败，则以一个新创建的`NotReadableError`拒绝 *p* 并终止后续步骤。
+    3. 若 *provider* 非空，等待身份声明过程结束。
+    4. 如果 *provider* 身份声明失败，则以一个新创建的`NotReadableError`拒绝 *p* 并终止后续步骤。
     5. 检查系统状态，确定当前可用的资源足够生成邀请，这在[JSEP 4.1.7](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.7)有定义。
     6. 如果因为任何原因检查失败，以一个新创建的`OperationError`拒绝 *p* 并终止后续步骤。
     7. 将包含[创建应答的最终步骤](http://w3c.github.io/webrtc-pc/#dfn-final-steps-to-create-an-offer)的任务加入队列。
 promise *p* 中 **创建应答的最终步骤** 包含以下：
     1. 如果 *connection* 的[IsClosed]槽为`true`，则终止以下步骤。
     2. 如果以某种方式修改了 *connection* ，则需要额外检查系统状态，或者如果连接配置的身份提供方不再是 *provider* ，则在 *p* 中重新开始创建应答的过程，并终止以下步骤。 **注意：这一步可能很重要，例如，当一个`RTCRtpTransceiver`的方向为`recvonly`时，`createAnswer`被调用了，但当并行执行创建邀请的过程中，方向又变为`sendrecv`了，这时候就需要检查视频编码资源。**
-    3. 从先前的检查中获取信息，包括 *connection* 的当前状态及其`RTCRtpTranceiver`列表， 来自 *provider* （若非空）的身份断言，然后生成一个SDP邀请， *sdpString* ，这在[JSEP 5.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2)中又定义。
+    3. 从先前的检查中获取信息，包括 *connection* 的当前状态及其`RTCRtpTranceiver`列表， 来自 *provider* （若非空）的身份声明，然后生成一个SDP邀请， *sdpString* ，这在[JSEP 5.2](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.2)中又定义。
     4. 设 *offer* 为新创建的`RTCSessionDescriptionInit`字典，其`type`成员被初始化为`"answer"`字符串，`sdp`成员被初始化为 *sdpString* 。
     5. 将内部的[LastAnswer]槽设为 *sdpString* 。
     6. 用 *offer* 解析 *p* 。
-- **setLocalDescription**：`setLocalDescription`方法命令`RTCPeerConnection`将提供的`RTCSessionDescriptionInit`作为本地描述。<br>  这个API改变了本地媒体的状态。为了成功处理应用想要提供的从一种媒体格式更改为另一种不兼容格式的场景，`RTCPeerConnection`必须能够同时支持使用当前已有的和正在挂起的本地描述（例如支持存在于两种描述中的编解码器）直到收到最终的应答，此时，`RTCPeerConnection`可以完全采用挂起的本地描述，或者如果远程端拒绝更改，则回滚至当前描述。<br>  如[JSEP 5.4](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.4)中提到的，`createOffer`和`createAnswer`返回的SDP在传入`setLocalDescription`之前一定不能被更改。最终，当本方法被调用，用户代理必须按以下步骤运行：<br>
+- **setLocalDescription**：`setLocalDescription`方法命令`RTCPeerConnection`将提供的`RTCSessionDescriptionInit`作为本地描述。<br>  这个API改变了本地媒体的状态。为了成功处理应用想要提供的从一种媒体格式更改为另一种不兼容格式的场景，`RTCPeerConnection`必须能够同时支持使用当前已有的和正在准备中的的本地描述（例如支持存在于两种描述中的编解码器）直到收到最终的应答，此时，`RTCPeerConnection`可以完全采用准备中的本地描述，或者如果远程端拒绝更改，则回滚至当前描述。<br>  如[JSEP 5.4](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.4)中提到的，`createOffer`和`createAnswer`返回的SDP在传入`setLocalDescription`之前一定不能被更改。最终，当本方法被调用，用户代理必须按以下步骤运行：<br>
     1. *description* 即`setLocalDescription`得第一个参数。
     2. 如果`description.sdp`为空字符串且`description.type`为`answer`或`pranswer`，将 *connection* 得[LastAnswer]槽的值赋给`description.sdp`。
     3. 如果`description.sdp`为空字符串且`description.type`为`offer`，将 *connection* 得[LastOffer]槽的值赋给`description.sdp`。
     4. 将用`description`表示的[设置RTCSessionDescription](http://w3c.github.io/webrtc-pc/#set-description)的结果返回。
-**注意：如[JSEP 5.9](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.9)中提到的，调用此方法可能触发ICE代理收集ICE候选项。**
-- **setRemoteDescription**：`setRemoteDescription`方法命令`RTCPeerConnection`将提供的`RTCSessionDescriptionInit`作为远程邀请或应答。<br>  这个API改变了本地媒体的状态。<br>  当方法被调用，用户代理必须返回以方法的第一个参数表示的设置RTCSessionDescription的结果。<br>  除此之外，一个远程描述被用来确定并确认对等连接的身份。<br>  如果`a=identity`属性存在于会话描述中，浏览器会验证身份断言。<br>  如果`peerIdentity`配置被应用于`RTCPeerConnection`，将建立起所提供值的 **目标对等身份**。另外，如果`RTCPeerConnection`之前的身份已被认证（也就是`peerIdentity`的promise对象被解析），则同样会建立起[目标对等身份](http://w3c.github.io/webrtc-pc/#target-peer-identity)。<br>  目标对等身份一旦被设置就不能被改变。<br>  如果目标等对身份被设置，那么身份的合法性验证必须在`setRemoteDescription`返回的promise被解析前完成。如果身份合法性验证失败了，则拒绝`setRemoteDescription`返回的promise。<br>  若无目标对等身份，`setRemoteDescription`无需等待身份合法性验证的完成。
-- **addIceCandidate**：`addIceCandidate`方法向ICE代理提供了一个远程候选项。当以一个空字符串表示`candidate`成员调用本方法时，同样可用于表示远程候选项的终端。 本方法使用的参数仅包括`candidate, sdpMid, sdpMLineIndex和usernameFragment`，其余都被忽略。当方法被调用，用户代理必须按以下步骤运行：
+**注意：如[JSEP 5.9](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.9)中提到的，调用此方法可能触发ICE代理收集ICE候选地址。**
+- **setRemoteDescription**：`setRemoteDescription`方法命令`RTCPeerConnection`将提供的`RTCSessionDescriptionInit`作为远程邀请或应答。<br>  这个API改变了本地媒体的状态。<br>  当方法被调用，用户代理必须返回以方法的第一个参数表示的设置RTCSessionDescription的结果。<br>  除此之外，一个远程描述被用来确定并确认对等连接的身份。<br>  如果`a=identity`属性存在于会话描述中，浏览器会验证身份声明。<br>  如果`peerIdentity`配置被应用于`RTCPeerConnection`，将建立起所提供值的 **目标对等身份**。另外，如果`RTCPeerConnection`之前的身份已被认证（也就是`peerIdentity`的promise对象被解析），则同样会建立起[目标对等身份](http://w3c.github.io/webrtc-pc/#target-peer-identity)。<br>  目标对等身份一旦被设置就不能被改变。<br>  如果目标等对身份被设置，那么身份的合法性验证必须在`setRemoteDescription`返回的promise被解析前完成。如果身份合法性验证失败了，则拒绝`setRemoteDescription`返回的promise。<br>  若无目标对等身份，`setRemoteDescription`无需等待身份合法性验证的完成。
+- **addIceCandidate**：`addIceCandidate`方法向ICE代理提供了一个远程候选地址。当以一个空字符串表示`candidate`成员调用本方法时，同样可用于表示远程候选地址的终端。 本方法使用的参数仅包括`candidate, sdpMid, sdpMLineIndex和usernameFragment`，其余都被忽略。当方法被调用，用户代理必须按以下步骤运行：
     1. *candidate* 即方法的参数。
     2. *connection* 即调用此方法的`RTCPeerConnetion`对象。如果`sdp和sdpMLineIndex`都为`null`，用一个新创建的`TypeError`拒绝promise并返回。
     3. 将包含以下步骤的任务加入 *connection* 的操作队列，并将结果返回：
@@ -696,7 +696,7 @@ promise *p* 中 **创建应答的最终步骤** 包含以下：
         4. 否则，如果 *candidate.sdpMLineIndex* 非空，运行以下步骤：
             1. 如果 *candidate.sdpMLineIndex* 大于等于`remoteDescription`中媒体描述的数量，用一个新创建的`OperationError`拒绝p并返回，中止这些步骤。
         5. 若`candidate.usernameFragment`值不是`undefined`或`null`，且已应用的远程描述中相应媒体描述存在的任何用户名片段，用一个新创建的`OperationError`拒绝p并返回，中止这些步骤。
-        6. 并行地，按照[JSEP 4.1.17](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.17)，添加ICE候选项。用`candidate.usernameFragment`识别ICE生成过程；如果`usernameFragment`为空，将 *candidate* 用于最近一次ICE生成过程。如果`candidate.candidate`是空字符串，则将 *candidate* 作为相应媒体描述和ICE候选项生成过程地终止指示。
+        6. 并行地，按照[JSEP 4.1.17](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-4.1.17)，添加ICE候选地址。用`candidate.usernameFragment`识别ICE生成过程；如果`usernameFragment`为空，将 *candidate* 用于最近一次ICE生成过程。如果`candidate.candidate`是空字符串，则将 *candidate* 作为相应媒体描述和ICE候选地址生成过程地终止指示。
             1. 若 *candidate* 没有被成功添加，用户代理必须将包含以下步骤地任务加入队列：
                 1. 如果 *connection* 的[IsClosed]槽为`true`，则终止步骤。
                 2. 用一个新创建的`OperationError`拒绝promise并返回。
@@ -708,7 +708,7 @@ promise *p* 中 **创建应答的最终步骤** 包含以下：
         7. 返回p。
 - **getDefaultIceServers**：返回配置入浏览器的ICE服务器列表。浏览器可被配置使用本地或私有的STUN/TURN服务器。本方法允许应用了解这些服务器并有选择地使用它们。<br>  这个列表可能是持久且跨源的。它同样增加了浏览器的指纹表面。在隐私敏感的上下文中，浏览器可以考虑暂缓，例如仅将此数据提供给列入白名单的数据源（或彻底不提供）（这是一个指纹向量）。<br>  **注意：由于此信息的使用由应用程序开发人员自行决定，因此使用这些默认值配置用户代理本身并不会增加用户限制其IP地址暴露的能力。**
 - **getConfiguration**：返回一个代表当前`RTCPeerConnection`配置的`RTCConfiguration`对象。<br>  当本方法被调用，用户代理必须必须返回存储在[Configuration]槽中的`RTCConfiguration`对象。
-- **setConfiguration**：`setConfiguration`方法会更新`RTCPeerConnection`对象的配置。包括改变ICE代理的配置。[JSEP  3.5.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-3.5.1)提到，当ICE配置以某种需要新的收集阶段的方式改变时，ICE应该重启。<br>  当`setConfiguration`被调用，用户代理必须按以下步骤运行：<br>
+- **setConfiguration**：`setConfiguration`方法会更新`RTCPeerConnection`对象的配置。包括改变ICE Servers的配置。[JSEP  3.5.1](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-3.5.1)提到，当ICE相关配置更新需要重新收集ice候选地址时，ICE应该重启。<br>  当`setConfiguration`被调用，用户代理必须按以下步骤运行：<br>
     1. *connection* 即调用此方法的`RTCPeerConnection`对象。
     2. 如果 *connection* 的[IsClosed]槽值为`true`，抛出一个`InvalidStateError`。
     3. 将配置设为指定的 *configuration* 。
@@ -981,7 +981,7 @@ dictionary RTCSessionDescriptionInit {
 
 #### 4.8.1 `RTCIceCandidate`接口
 
-该接口描述了ICE候选项，在[ICE第二节](http://w3c.github.io/webrtc-pc/#bib-ICE)中描述。除了`candidate, sdpMid, sdpMLineIndex, usernameFragment`，其余的属性都从 *candidateInitDict* 的`candidate`成员中派生，前提是它们格式完好。
+该接口描述了ICE候选地址，在[ICE第二节](http://w3c.github.io/webrtc-pc/#bib-ICE)中描述。除了`candidate, sdpMid, sdpMLineIndex, usernameFragment`，其余的属性都从 *candidateInitDict* 的`candidate`成员中派生，前提是它们格式完好。
 
 ```webidl
 [Constructor(optional RTCIceCandidateInit candidateInitDict),
@@ -1025,19 +1025,19 @@ interface RTCIceCandidate {
 **属性:**
 以下大多数属性都被定义在[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE)的15.1中。
 
-- DOMString类型的`candidate`，只读：它携带了[ICE]第15.1中定义的`candidate-attribute`。如果这个`RTCIceCandidate`代表了候选项结束的指示，`candidate`是一个空字符串。
-- DOMString类型的`sdpMid`，只读，可空：如果不为`null`，它将包含[RFC5888](http://w3c.github.io/webrtc-pc/#bib-RFC5888)中定义的该候选项关联的媒体组件中的媒体流"识别标签"。
-- unsigned short类型的`sdpMLineIndex`，只读，可空：如果不为`null`，它表示该候选项关联的SDP中媒体描述的索引值（从0开始）。
-- DOMString类型的`foundation`，只读，可空：允许ICE关联出现在多个`RTCIceTransport`上候选项的唯一标识符。
-- RTCIceComponent类型的`component`，只读，可空：赋予候选项的网络组件(`rtp`或`rtcp`)。这对应于`candidate-attribute`中的`component-id`字段，解码为`RTCIceComponent`中定义的字符串表示。
-- unsigned long类型的`priority`，只读，可空：赋予候选项的优先级。
-- DOMString类型的`address`，只读，可空：候选项的地址，可以是IPv4，IPv6，或全限定域名（FQDN）。它对应于`candidate-attribute`中的`connection-address`字段。<br>  注意：候选者中公开的地址通过ICE收集并对`RTCIceCandidate`实例中的应用程序可见，这可以揭示有关设备和用户的更多信息（例如位置，本地网络拓扑），而不是用户在未启用WebRTC的浏览器中期望信息。<br>  这些地址会一直对应用公开，并可能对沟通方公开，也可能未经用户同意就公开（例如，对于在数据通道中使用的或只接收媒体的对等连接）。<br>  这些地址也可被用于暂时或持久的跨源状态，因此对设备的指纹表面有利。（这是一个指纹向量。）<br>  通过设置`RTCConfiguration`的`iceTransportPolicy`成员强制ICE代理只报告中继候选项，应用可暂时或永久地避免将地址暴露给沟通方。<br>  为了限制暴露给应用本身的地址，浏览器可以向它们的用户提供不同的策略而不是共享本地地址，这定义在[RTCWEB-IP-HANDLING](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-IP-HANDLING)。
-- RTCIceProtocal类型的`protocal`，只读，可空：候选项的协议(`udp`或`tcp`)。对应于`candidate-attribute`中的`transport`字段。
-- unsigned short类型的`port`，只读，可空：候选项的端口。
-- RTCIceCandidateType类型的`type`，只读，可控：候选项的类型。对应于`candidate-attribute`中的`candidate-types`字段。
-- RTCIceTcpCandidateType类型的`tcpType`，只读，可空：如果`protocal`为`tcp`，则`tcpType`代表TCP候选项的类型。否则，`tcpType`为`null`。对应于`candidate-attribute`中的`tcp-type`字段。
-- DOMString类型的`relatedAddress`，只读，可空：对于从别的候选项（中继或反射候选项）例如派生出的候选项，`relatedAddress`即派生源的IP地址。对于主机候选项，`relatedAddress`为`null`。对应于`candidate-attribute`中的`real-address`字段。
-- unsigned short类型的`relatedPort`，只读，可空：对于从别的候选项（中继或反射候选项）例如派生出的候选项，`relatedPort`即派生源的IP端口。对于主机候选项，`relatedPort`为`null`。对应于`candidate-attribute`中的`real-port`字段。
+- DOMString类型的`candidate`，只读：它携带了[ICE]第15.1中定义的`candidate-attribute`。如果这个`RTCIceCandidate`代表了候选地址结束的指示，`candidate`是一个空字符串。
+- DOMString类型的`sdpMid`，只读，可空：如果不为`null`，它将包含[RFC5888](http://w3c.github.io/webrtc-pc/#bib-RFC5888)中定义的该候选地址关联的媒体组件中的媒体流"识别标签"。
+- unsigned short类型的`sdpMLineIndex`，只读，可空：如果不为`null`，它表示该候选地址关联的SDP中媒体描述的索引值（从0开始）。
+- DOMString类型的`foundation`，只读，可空：允许ICE关联出现在多个`RTCIceTransport`上候选地址的唯一标识符。
+- RTCIceComponent类型的`component`，只读，可空：赋予候选地址的网络组件(`rtp`或`rtcp`)。这对应于`candidate-attribute`中的`component-id`字段，解码为`RTCIceComponent`中定义的字符串表示。
+- unsigned long类型的`priority`，只读，可空：赋予候选地址的优先级。
+- DOMString类型的`address`，只读，可空：候选地址的地址，可以是IPv4，IPv6，或全限定域名（FQDN）。它对应于`candidate-attribute`中的`connection-address`字段。<br>  注意：候选者中公开的地址通过ICE收集并对`RTCIceCandidate`实例中的应用程序可见，这可以揭示有关设备和用户的更多信息（例如位置，本地网络拓扑），而不是用户在未启用WebRTC的浏览器中期望信息。<br>  这些地址会一直对应用公开，并可能对沟通方公开，也可能未经用户同意就公开（例如，对于在数据通道中使用的或只接收媒体的对等连接）。<br>  这些地址也可被用于暂时或持久的跨源状态，因此对设备的指纹表面有利。（这是一个指纹向量。）<br>  通过设置`RTCConfiguration`的`iceTransportPolicy`成员强制ICE代理只报告中继候选地址，应用可暂时或永久地避免将地址暴露给沟通方。<br>  为了限制暴露给应用本身的地址，浏览器可以向它们的用户提供不同的策略而不是共享本地地址，这定义在[RTCWEB-IP-HANDLING](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-IP-HANDLING)。
+- RTCIceProtocal类型的`protocal`，只读，可空：候选地址的协议(`udp`或`tcp`)。对应于`candidate-attribute`中的`transport`字段。
+- unsigned short类型的`port`，只读，可空：候选地址的端口。
+- RTCIceCandidateType类型的`type`，只读，可控：候选地址的类型。对应于`candidate-attribute`中的`candidate-types`字段。
+- RTCIceTcpCandidateType类型的`tcpType`，只读，可空：如果`protocal`为`tcp`，则`tcpType`代表TCP候选地址的类型。否则，`tcpType`为`null`。对应于`candidate-attribute`中的`tcp-type`字段。
+- DOMString类型的`relatedAddress`，只读，可空：对于从别的候选地址（中继或反射候选地址）例如派生出的候选地址，`relatedAddress`即派生源的IP地址。对于主机候选地址，`relatedAddress`为`null`。对应于`candidate-attribute`中的`real-address`字段。
+- unsigned short类型的`relatedPort`，只读，可空：对于从别的候选地址（中继或反射候选地址）例如派生出的候选地址，`relatedPort`即派生源的IP端口。对于主机候选地址，`relatedPort`为`null`。对应于`candidate-attribute`中的`real-port`字段。
 - DOMString类型的`usernameFragment`，只读，可空：它携带了[ICE]15.4节中定义的`ufrag`。
 
 **方法：**
@@ -1060,9 +1060,9 @@ dictionary RTCIceCandidateInit {
 
 `RTCIceCandidateInit`字典成员：
 
-- DOMString类型的`candidate`，缺省值为`""`：它携带了[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE) 15.1节中定义的`candidate-attributes`。如果这表示候选项结束指示，则`candidate`是空字符串。
-- DOMString类型的`sdpMid`，可空，缺省值为`null`：如果非`null`，它将包含与此候选项相关联的媒体组件的媒体流"识别标签"，这在[RFC5888](http://w3c.github.io/webrtc-pc/#bib-RFC5888)中定义。
-- unsigned short类型的`sdpMLineIndex`，可空，缺省值为`null`：如果非`null`，它表示该候选项关联的SDP中媒体描述的索引值（从0开始）。
+- DOMString类型的`candidate`，缺省值为`""`：它携带了[ICE](http://w3c.github.io/webrtc-pc/#bib-ICE) 15.1节中定义的`candidate-attributes`。如果这表示候选地址结束指示，则`candidate`是空字符串。
+- DOMString类型的`sdpMid`，可空，缺省值为`null`：如果非`null`，它将包含与此候选地址相关联的媒体组件的媒体流"识别标签"，这在[RFC5888](http://w3c.github.io/webrtc-pc/#bib-RFC5888)中定义。
+- unsigned short类型的`sdpMLineIndex`，可空，缺省值为`null`：如果非`null`，它表示该候选地址关联的SDP中媒体描述的索引值（从0开始）。
 - DOMString类型的`usernameFragment`：它携带了[ICE]15.4节中定义的`ufrag`。
 
 #### *4.8.1.1 candidate-attribute语法*
@@ -1073,7 +1073,7 @@ dictionary RTCIceCandidateInit {
 
 #### *4.8.1.2 RTCIceProtocal枚举*
 
-`RTCIceProtocal`代表ICE候选项的协议。
+`RTCIceProtocal`代表ICE候选地址的协议。
 
 ```webidl
 enum RTCIceProtocol {
@@ -1084,8 +1084,8 @@ enum RTCIceProtocol {
 
 **枚举值描述：**
 
-- `udp`：UDP类型候选项，ICE中有相关描述。
-- `tcp`：TCP类型候选项，[RFC6544]中有相关描述。
+- `udp`：UDP类型候选地址，ICE中有相关描述。
+- `tcp`：TCP类型候选地址，[RFC6544]中有相关描述。
 
 #### *4.8.1.3 RTCIceTcpCandidateType枚举*
 
@@ -1101,15 +1101,15 @@ enum RTCIceTcpCandidateType {
 
 **枚举值描述：**
 
-- `active`：一个`active`的TCP候选项的传输将尝试打开出站连接但不会接收传入连接请求。
-- `passive`：一个`passive`的TCP候选项的传输将尝试接收传入连接请求但不会主动打开连接。
-- `so`：一个`passive`的候选项的传输将尝试与其对等端同时打开一个连接。
+- `active`：`active`类型的TCP候选地址通道主动建立对外的ice连接，而不接受连接请求。
+- `passive`：`passive`类型的TCP候选地址通道总是接收ice连接请求，而不主动做连接。
+- `so`：`so(simultaneous-open)`类型的TCP候选地址通道与对端so类型的候选地址做ice连接（优先级高与上面的两个）。
 
-> 注意：用户代理通常只会收集`active`类型的ICE TCP候选项。
+> 注意：用户代理通常只会收集`active`类型的ICE TCP候选地址。
 
 #### *4.8.1.4 RTCIceCandidateType枚举*
 
-`RTCIceCandidateType`代表ICE候选项的类型，定义在[ICE]15.1节。
+`RTCIceCandidateType`代表ICE候选地址的类型，定义在[ICE]15.1节。
 
 ```webidl
 enum RTCIceCandidateType {
@@ -1122,20 +1122,20 @@ enum RTCIceCandidateType {
 
 **枚举值描述：**
 
-- `host`：主机候选项，定义在ICE 4.1.1.1。
-- `srflx`：服务器反射候选项，定义在ICE 4.1.1.2。
-- `prflx`：对等反射候选项，定义在ICE 4.1.1.2。
-- `relay`：中继候选项，定义在ICE 7.1.3.2.1。
+- `host`：主机候选地址，定义在ICE 4.1.1.1。
+- `srflx`：服务器反射候选地址，定义在ICE 4.1.1.2。
+- `prflx`：对等反射候选地址，定义在ICE 4.1.1.2。
+- `relay`：中继候选地址，定义在ICE 7.1.3.2.1。
 
 #### 4.8.2 RTCPeerConnectionIceEvent
 
 `RTCPeerConnection`的`icecandidate`事件使用了`RTCPeerConnectionIceEvent`接口。
-当触发一个包含`RTCIceCandidate`对象的`RTCPeerConnectionIceEvent`事件时，对象必须包含`sdpMid`和`sdpMLineIndex`的值。如果`RTCIceCandidate`的类型为`srflx`或`relay`，事件的`url`属性必须被设置为候选项获得的ICE服务器的URL地址。
+当触发一个包含`RTCIceCandidate`对象的`RTCPeerConnectionIceEvent`事件时，对象必须包含`sdpMid`和`sdpMLineIndex`的值。如果`RTCIceCandidate`的类型为`srflx`或`relay`，事件的`url`属性必须被设置为候选地址获得的ICE服务器的URL地址。
 
 > 注意：`icecandidate`有三种不同类型的表示：
-> - 一个已被收集的候选项。事件的`candidate`成员通常会被填充。它应该发信号通知远程对等端并传递给`addIceCandidate`方法。
-> - 某一`RTCIceTransport`已结束一代候选项的收集工作，并且提供了[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)8.2节中定义的候选项结束指示。这通过将`candidate.candidate`设为空字符串来表示。`candidate`对象应该发信号通知远程对等端并向普通ICE候选项一样传入`addIceCandidate`方法，以向远程对等端提供候选项结束指示。
-> 所有`RTCIceTransport`已结束候选项的收集工作，且`RTCPeerConnection`的`RTCIceGatheringState`已迁移至`complete`。这通过将事件的`candidate`成员设为`null`来表示。它只为了后向兼容性存在，并且本事件不需要通知远程对等端。它与`"complete"`状态的`icegatheringstatechange`事件等效。
+> - 收集到了一个候选地址时，`RTCIceCandidate`事件就会触发，本端得到这个候选地址后，应该通过信号通知对端，对端通过`addIceCandidate`方法将接收到的候选地址设置到自己的`peerConnection`实例中。
+> - 某一`RTCIceTransport`已结束一代候选地址的收集工作，并且提供了[TRICKLE-ICE](http://w3c.github.io/webrtc-pc/#bib-TRICKLE-ICE)8.2节中定义的候选地址结束指示。这通过将`candidate.candidate`设为空字符串来表示。`candidate`对象应该发信号通知远程对等端并向普通ICE候选地址一样传入`addIceCandidate`方法，以向远程对等端提供候选地址结束指示。
+> 所有`RTCIceTransport`已结束候选地址的收集工作，且`RTCPeerConnection`的`RTCIceGatheringState`已迁移至`complete`。这通过将事件的`candidate`成员设为`null`来表示。它只为了后向兼容性存在，并且本事件不需要通知远程对等端。它与`"complete"`状态的`icegatheringstatechange`事件等效。
 
 ```webidl
 [Constructor(DOMString type, optional RTCPeerConnectionIceEventInit eventInitDict),
@@ -1152,8 +1152,8 @@ interface RTCPeerConnectionIceEvent : Event {
 
 **属性：**
 
-- RTCIceCandidate类型的`candidate`，只读，可空：`candidate`属性是中造成事件的新ICE候选项`RTCIceCandidate`对象。<br>  当生成的事件代表候选项收集结束的时候，本属性被设为`null`。<br>  **注意：即使存在多个媒体组件，也只会出发一个包含`null`候选项的事件**
-- DOMString类型的`url`，只读，可空：`url`属性是在收集候选项时被用于识别STUN/TURN服务器的STUN/TURN URL地址。如果候选项并不是从STUN/TURN服务器收集来的，本参数为`null`。
+- RTCIceCandidate类型的`candidate`，只读，可空：`candidate`属性是中造成事件的新ICE候选地址`RTCIceCandidate`对象。<br>  当生成的事件代表候选地址收集结束的时候，本属性被设为`null`。<br>  **注意：即使存在多个媒体组件，也只会出发一个包含`null`候选地址的事件**
+- DOMString类型的`url`，只读，可空：`url`属性是在收集候选地址时被用于识别STUN/TURN服务器的STUN/TURN URL地址。如果候选地址并不是从STUN/TURN服务器收集来的，本参数为`null`。
 
 ```webidl
 dictionary RTCPeerConnectionIceEventInit : EventInit {
@@ -1165,7 +1165,7 @@ dictionary RTCPeerConnectionIceEventInit : EventInit {
 `RTCPeerConnectionIceEventInit`字典成员：
 
 - RTCIceCandidate类型的`candidate`，可空：详情请见`RTCPeerConnectionIceEvent`接口的`candidate`属性。
-- DOMString类型的`url`，可空：`url`属性是在收集候选项时被用于识别STUN/TURN服务器的STUN/TURN URL地址。
+- DOMString类型的`url`，可空：`url`属性是在收集候选地址时被用于识别STUN/TURN服务器的STUN/TURN URL地址。
 
 #### 4.8.3 RTCPeerConnectionIceErrorEvent
 
@@ -1190,7 +1190,7 @@ interface RTCPeerConnectionIceErrorEvent : Event {
 
 - DOMString类型的`hostCandidate`，只读：`hostCandidate`属性是被用来与STUN/TURN服务器通信的本地IP地址和端口。<br>  在多宿主系统上，可以使用多个接口来与服务器通信，该属性允许应用程序确定故障发生在哪一个接口上。<br>  如果出于隐私原因禁止使用多个接口，则此属性将根据需要设置为0.0.0.0:0或[::]：0。
 - DOMString类型的`url`，只读：`url`属性标识了可能发生故障的STUN/TURN服务器的URL地址。
-- unsigned short类型的`errorCode`，只读：`errorCode`属性是STUN/TURN服务器返回的数字错误码，详情见[STUN-PARAMETERS](http://w3c.github.io/webrtc-pc/#bib-STUN-PARAMETERS)。<br>  如果没有主机候选项可以到达服务器，`errorCode`将被设成STUN错误码范围外的701。在`RTCIceGatheringState`的"收集"阶段，每个服务器URL只会触发一次这个错误。
+- unsigned short类型的`errorCode`，只读：`errorCode`属性是STUN/TURN服务器返回的数字错误码，详情见[STUN-PARAMETERS](http://w3c.github.io/webrtc-pc/#bib-STUN-PARAMETERS)。<br>  如果没有主机候选地址可以到达服务器，`errorCode`将被设成STUN错误码范围外的701。在`RTCIceGatheringState`的"收集"阶段，每个服务器URL只会触发一次这个错误。
 - USVString类型的`errorText`，只读：`errorText`属性是STUN/TURN服务器返回的错误响应文本。<br>  如果服务器不能到达，`errorText`将被设为一个具体实现指定的值，指示错误的细节。
 
 ```webidl
@@ -2166,36 +2166,36 @@ dictionary RTCDtlsFingerprint {
 
 > 注意：现有`RTCRtpTransceiver`的ICE重启将由现有的`RTCIceTransport`对象表示，其状态将相应更新，而不是由新对象表示。
 
-当ICE代理指示它开始为`RTCIceTransport`收集一代候选项时，用户代理必须将包含以下步骤的任务加入操作队列：
+当ICE代理指示它开始为`RTCIceTransport`收集一代候选地址时，用户代理必须将包含以下步骤的任务加入操作队列：
 
 1. 设 *connection* 为与ICE代理相关联的`RTCPeerConnection`对象。
 2. 如果 *connection* 的[IsClosed]槽为`true`，则终止后续步骤。
-3. 设 *transport* 为启动收集候选项时的`RTCIceTransport`对象。
+3. 设 *transport* 为启动收集候选地址时的`RTCIceTransport`对象。
 4. 将 *transport* 的[IceGatherState]槽设为`gathering`。
 5. 在 *transport* 之上触发名为`gatheringstatechange`的时间。
 6. 更新 *connection* 的ICE收集状态。
 
-当ICE代理指示已为`RTCIceTransport`完成一代候选项的收集工作时，用户代理必须将包含以下步骤的任务加入操作队列：
+当ICE代理指示已为`RTCIceTransport`完成一代候选地址的收集工作时，用户代理必须将包含以下步骤的任务加入操作队列：
 
 1. 设 *connection* 为与ICE代理关联的`RTCPeerConnection`对象。
 2. 如果 *connection* 的[IsClosed]槽为`true`，则终止后续步骤。
-3. 设 *transport* 为结束候选项收集工作的`RTCIceTransport`对象。
-4. 创建一个新`RTCIceCandidate`对象，命名为 *newCandidate* ，其`sdpMid`和`sdpMLineIndex`值设为与之关联的`RTCIceTransport`的对应值，`usernameFragment`设为收集完一代候选项的用户名片段，`candidate`设为一个空字符串，其他所有可空的成员设为`null`。
+3. 设 *transport* 为结束候选地址收集工作的`RTCIceTransport`对象。
+4. 创建一个新`RTCIceCandidate`对象，命名为 *newCandidate* ，其`sdpMid`和`sdpMLineIndex`值设为与之关联的`RTCIceTransport`的对应值，`usernameFragment`设为收集完一代候选地址的用户名片段，`candidate`设为一个空字符串，其他所有可空的成员设为`null`。
 5. 利用`candidate`属性设为 *newCandidate* 的 `RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件。
-6. 如果另一代候选项正在被收集，则终止步骤。 **注意：** 如果在ICE代理仍在收集上一代候选项时启动ICE重启，则可能会发生这种情况。
+6. 如果另一代候选地址正在被收集，则终止步骤。 **注意：** 如果在ICE代理仍在收集上一代候选地址时启动ICE重启，则可能会发生这种情况。
 7. 将 *transport* 的[IceGatherState]槽设为`complete`。
 8. 在 *transport* 上触发名为`gatheringstatechange`的事件。
 9. 更新 *connection* 的ICE收集状态。
     
-当ICE代理指示新的ICE候选项可用于`RTCIceTransport`时，从ICE候选池中取一个或重新开始收集一个候选项，用户代理将包含以下步骤的任务加入操作列队：
+当ICE代理指示新的ICE候选地址可用于`RTCIceTransport`时，从ICE候选池中取一个或重新开始收集一个候选地址，用户代理将包含以下步骤的任务加入操作列队：
 
 1. 设 *connection* 为与ICE代理关联的`RTCPeerConnection`对象。
 2. 如果 *connection* 的[IsClosed]槽为`true`，则终止后续步骤。
-3. 设 *transport* 为被提供可用候选项的`RTCIceTransport`。
+3. 设 *transport* 为被提供可用候选地址的`RTCIceTransport`。
 4. 如果 *connection.[PendingLocalDescription]* 非空，且代表收集 *candidate* 的ICE代，则将 *candidate* 添加入*connection.[PendingLocalDescription].sdp* 。
 5. 若 *connection.[CurrentLocalDescription]* 非空，且代表收集 *candidate* 的ICE代，则将 *candidate* 添加入*connection.[CurrentLocalDescription].sdp* 。
-6. 创建一个代表候选项的`RTCIceCandidate`对象，命名为 *newCandidate* 。
-7. 将 *newCandidate* 加入 *transport* 的本地候选项集合。
+6. 创建一个代表候选地址的`RTCIceCandidate`对象，命名为 *newCandidate* 。
+7. 将 *newCandidate* 加入 *transport* 的本地候选地址集合。
 8. 利用`candidate`属性设为 *newCandidate* 的 `RTCPeerConnectionIceEvent`接口触发名为`icecandidate`的事件。
 
 当ICE代理指示`RTCIceTransport`的`RTCIceTransportState`已被更改时，用户代理将包含以下步骤的任务加入操作列队：
@@ -2254,7 +2254,7 @@ interface RTCIceTransport : EventTarget {
 
 **方法：**
 
-- *getLocalCandidates* ：返回一个序列，描述为此`RTCIceTransport`收集并在`onicecandidate`中发送的本地ICE候选项。
+- *getLocalCandidates* ：返回一个序列，描述为此`RTCIceTransport`收集并在`onicecandidate`中发送的本地ICE候选地址。
 - *getRemoteCandidates* ：返回发送数据包的选定候选对。此方法必须返回[SelectedCandidatePair]槽的值。
 - *getLocalParameters* ：返回此`RTCIceTransport`通过`setLocalDescription`方法接收的本地ICE参数，如果尚未接收，则返回`null`。
 - *getRemoteParameters* ：返回此`RTCIceTransport`通过`setRemoteDescription`方法接收的远程ICE参数，如果尚未接收，则返回`null`。
@@ -2284,8 +2284,8 @@ dictionary RTCIceCandidatePair {
 
 `RTCIceParameters`字典成员：
 
-- RTCIceCandidate类型的`local`：本地ICE候选项。
-- RTCIceCandidate类型的`remote`：远程ICE候选项。
+- RTCIceCandidate类型的`local`：本地ICE候选地址。
+- RTCIceCandidate类型的`remote`：远程ICE候选地址。
 
 #### 5.6.3 `RTCIceGathererState`枚举
 
@@ -2299,9 +2299,9 @@ enum RTCIceGathererState {
 
 `RTCIceGathererState`枚举值描述
 
-- new：`RTCIceTransport`刚被创建，尚未启动候选项收集。
-- gathering：`RTCIceTransport`正在候选项收集的过程中。
-- complete：`RTCIceTransport`已完成收集，并已发送此传输的候选项终止指示。在ICE重启之前，它不会再次收集候选项。
+- new：`RTCIceTransport`刚被创建，尚未启动候选地址收集。
+- gathering：`RTCIceTransport`正在候选地址收集的过程中。
+- complete：`RTCIceTransport`已完成收集，并已发送此传输的候选地址终止指示。在ICE重启之前，它不会再次收集候选地址。
 
 #### 5.6.4 `RTCIceTransportState`枚举
 
@@ -2319,29 +2319,29 @@ enum RTCIceTransportState {
 
 `RTCIceTransportState`枚举值描述：
 
-- new：`RTCIceTransport`正在收集候选项和 /或正在等待远程候选项被提供，且还未启动检查。
-- checking：`RTCIceTransport`已经收到至少一个远程候选项，正在检查候选对，且尚未找到可用连接或许可检查[RFC7675](http://w3c.github.io/webrtc-pc/#bib-RFC7675)在先前所有成功的候选对都失败了。除了检查，它还可能仍在收集。
-- connected：`RTCIceTransport`找到了一个可用的连接，但仍在检查其他候选对，以查看是否有更好的连接。 它可能仍然在收集和/或等待其他远程候选人。如果许可检查[RFC7675]在正在使用的连接上失败，并且没有其他成功的候选对可用，则状态转换为`"checking"`（还有待检查的候选对）或`"disconnected"`（没有候选对要检查，但对等端仍在收集和/或等待其他远程候选项）。
-- completed：`RTCIceTransport`已完成收集，收到一条表明没有更多远程候选项的指示，已完成所有候选对的检查并找到一个连接。如果许可检查[RFC7675]随后在所有成功的候选对上都失败，则状态转换为`"failed"`。
+- new：`RTCIceTransport`正在收集候选地址和 /或正在等待远程候选地址被提供，且还未启动检查。
+- checking：`RTCIceTransport`已经收到至少一个远程候选地址，正在检查候选对，且尚未找到可用连接或许可检查[RFC7675](http://w3c.github.io/webrtc-pc/#bib-RFC7675)在先前所有成功的候选对都失败了。除了检查，它还可能仍在收集。
+- connected：`RTCIceTransport`找到了一个可用的连接，但仍在检查其他候选对，以查看是否有更好的连接。 它可能仍然在收集和/或等待其他远程候选人。如果许可检查[RFC7675]在正在使用的连接上失败，并且没有其他成功的候选对可用，则状态转换为`"checking"`（还有待检查的候选对）或`"disconnected"`（没有候选对要检查，但对等端仍在收集和/或等待其他远程候选地址）。
+- completed：`RTCIceTransport`已完成收集，收到一条表明没有更多远程候选地址的指示，已完成所有候选对的检查并找到一个连接。如果许可检查[RFC7675]随后在所有成功的候选对上都失败，则状态转换为`"failed"`。
 - disconnected：ICE代理已确定此`RTCIceTransport`当前已丢失连接。这是一种瞬时状态，可能会在片状网络上间歇性地触发（并在没有其他动作的情况下自行解决）。确定此状态的方式取决于具体实现。以下是例子：
     -  丢失了正在使用的连接的网络接口。
     -  重复无法收到STUN请求的响应。
-另外的，`RTCIceTransport`已完成所有现有候选对的检查但未找到连接（或者许可检查[RFC7675]之前成功，但现已失败），但它仍在收集和/或等待其他远程候选项。
-- failed：`RTCIceTransport`已完成收集，收到一个表明没有更多的远程候选项的指示，已完成检查所有候选对，并且所有候选对的连接检查都失败或不被许可。这是一个最终状态。
+另外的，`RTCIceTransport`已完成所有现有候选对的检查但未找到连接（或者许可检查[RFC7675]之前成功，但现已失败），但它仍在收集和/或等待其他远程候选地址。
+- failed：`RTCIceTransport`已完成收集，收到一个表明没有更多的远程候选地址的指示，已完成检查所有候选对，并且所有候选对的连接检查都失败或不被许可。这是一个最终状态。
 - closed：`RTCIceTransport`已关闭且不再响应STUN请求。
 
-ICE重启导致候选项收集和连接检查重新启动，如果在`"completed"`状态下开始则会转移到`"connected"`状态。如果在瞬时`"disconnected"`状态下启动，则会导致状态转移到`"checking"`，从而很快忘记先前已丢失的连接。
+ICE重启导致候选地址收集和连接检查重新启动，如果在`"completed"`状态下开始则会转移到`"connected"`状态。如果在瞬时`"disconnected"`状态下启动，则会导致状态转移到`"checking"`，从而很快忘记先前已丢失的连接。
 
-`"failed"`和`"completed"`状态要求一个没有其他远程候选项的指示。可以用一个候选值调用`addIceCandidate`方法来指示，该候选值的`candidate`属性设为空字符串或`canTrickleIceCandidates`属性设为`false`。
+`"failed"`和`"completed"`状态要求一个没有其他远程候选地址的指示。可以用一个候选值调用`addIceCandidate`方法来指示，该候选值的`candidate`属性设为空字符串或`canTrickleIceCandidates`属性设为`false`。
 
 以下是一些状态转移的例子：
 
 - （`RTCIceTransport`作为`setLocalDescription`和`setRemoteDescription`的调用结果被创建）：`new`。
-- （`new`，远程候选项被接收）：`checking`。
+- （`new`，远程候选地址被接收）：`checking`。
 - （`checking`，找到可用连接）：`connected`。
 - （`checking`，检查失败，但仍在收集过程中）：`disconnected`。
 - （`checking`，放弃）：`failed`。
-- （`disconnected`，新的本地候选项）：`checking`。
+- （`disconnected`，新的本地候选地址）：`checking`。
 - （`connected`，结束所有检查）：`completed`。
 - （`completed`，失去连接）：`disconnected`。
 - （`disconnected`或`failed`，ICE开始重启）：`checking`。
