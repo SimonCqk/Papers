@@ -2699,3 +2699,84 @@ dictionary RTCDataChannelInit {
   RTCPriorityType priority = "low";
 };
 ```
+
+`RTCDataChannelInit`字典成员：
+
+- boolean类型的`ordered`，缺省值为`true`：若被设为`false`，则允许数据无序到达。默认值为`true`，保证数据一定按需到达。
+- unsigned short类型的`maxPacketLifeTime`：限制通道在未得到确认的情况下传输或重传数据的时间（以毫秒为单位）。如果该值超过用户代理支持的最大值，则可以限制使用该值。
+- unsigned short类型的`maxRetransmit`：在数据未送达对端的情况下限制通道数据重传的次数。如果该值超过用户代理支持的最大值，则可以限制使用该值。
+- USVString类型的`protocol`，缺省值为`""`：该通道使用的子协议名。
+- boolean类型的`negotiated`，缺省值为`false`：缺省值`false`指示用户代理在频内公布此通道并指示其他端分派相应的`RTCDataChannel`对象。如果被设为`true`，则由应用程序协商通道并在对端创建具有相同`id`的`RTCDataChannel`对象。 **注意：** 如果被设为`true`，则应用程序必须注意，在对端创建了一个数据通道来接收它之前不要发送消息。在没有关联数据通道的SCTP流上接收消息是未定义行为，消息可能会以静默的方式丢弃。只要两个端在第一个邀请/应答交换完成之前创建其数据通道，这样的情况就不可能发生。
+- unsigned short类型的`id`：覆盖此通道默认选择的ID。
+- RTCPriorityType类型的`priority`，缺省值为`low`：此通道的优先级。
+
+`send()`方法以重载的方式处理不同的数据参数类型。当此方法的任意版本被调用时，用户代理必须运行以下步骤：
+
+1. 设 *channel* 为将要发送数据的`RTCDataChannel`对象。
+2. 若 *channel* 的[ReadyState]槽值不是`open`，抛出一个`InvalidStateError`。
+3. 根据方法的参数运行以下对应的子步骤：
+    - `string`对象：设 *data* 为一个字节缓冲区，代表方法参数以UTF-8解码后的结果。
+    - `Blob`对象：设 *data* 为由`Blob`对象表示的源数据。
+    - `ArrayBuffer`对象：设 *data* 为存储在缓冲区中由`ArrayBuffer`对象表示的数据。
+    - `ArrayBufferView`对象：设 *data* 为存储在缓冲区部分中的数据，数据由被`ArrayBufferView`对象引用的`ArrayBuffer`对象表示。 **注意：** 除了本方法已被重载的数据参数类型，其他所有数据参数类型都会造成`TypeError`。这同样包括`null`和`undefined`类型。
+4. 若 *data* 的字节数超出与 *channel* 相关联的`RTCSctpTransport`对象中的`maxMessageSize`值，则抛出一个`TypeError`。
+5. 将 *data* 加入 *channel* 的底层数据传输队列。如果因为没有足够多可用的缓存空间导致 *data* 的入队操作失败，则抛出一个`OperationError`。 **注意：** 实际的数据发送是并行的。如果发送数据时导致了一个SCTP级别的错误，则会通过`onerror`事件异步地将错误通知应用。
+6. 将[BufferedAmount]槽中的值加上 *data* 的字节数。
+
+```webidl
+enum RTCDataChannelState {
+    "connecting",
+    "open",
+    "closing",
+    "closed"
+};
+
+```
+
+`RTCDataChannelState`枚举值描述：
+
+- connecting：用户代理正尝试建立底层数据传输。无论`RTCDataChannel`是由`createDataChannel`方法创建的，还是作为`RTCDataChannelEvent`的一部分指派的，它的初始状态都是`connecting`。
+- open：底层数据传输已建立且可能发生通信。
+- closing：关闭底层数据传输的关闭程序已经启动。
+- closed：底层数据传输已被关闭或不能建立。
+
+### 6.3 `RTCDataChannelEvent`
+
+`datachannel`事件使用`RTCDataChannelEvent`接口。
+
+```webidl
+[Constructor(DOMString type, RTCDataChannelEventInit eventInitDict),
+ Exposed=Window]
+interface RTCDataChannelEvent : Event {
+    readonly attribute RTCDataChannel channel;
+};
+```
+
+**构造器：**
+
+`RTCDataChannelEvent`
+
+**属性：**
+
+- RTCDataChannel类型的`channel`，只读：`channel`属性代表与事件相关联的`RTCDataChannel`对象。
+
+```webidl
+dictionary RTCDataChannelEventInit : EventInit {
+    required RTCDataChannel channel;
+};
+```
+
+`RTCDataChannelEventInit`字典成员：
+
+- RTCDataChannel类型的`channel`，必需项：由事件宣布的`RTCDataChannel`对象。
+
+### 6.4 垃圾回收
+
+如果满足以下情况，则`RTCDataChannel`对象一定不能被回收：
+
+- [ReadyState]槽为`connecting`且为`open`事件，`message`事件，`error`事件，或`close`事件注册了至少一个事件监听器。
+- [ReadyState]槽为`open`且`message`事件，`error`事件，或`close`事件注册了至少一个事件监听器。
+- [ReadyState]槽为`closing`且为`error`事件，或`close`事件注册了至少一个事件监听器。
+- 底层数据传输已被创建且数据已被加入发送队列。
+
+## 7. 点对点DTMF
