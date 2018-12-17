@@ -2780,3 +2780,120 @@ dictionary RTCDataChannelEventInit : EventInit {
 - 底层数据传输已被创建且数据已被加入发送队列。
 
 ## 7. 点对点DTMF
+
+本节介绍`RTCRtpSender`上的一个接口，用于在`RTCPeerConnection`上发送DTMF（按键）值。关于如何将DTMF发送到其他对等端，详见[RTCWEB-AUDIO](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-AUDIO)。
+
+### 7.1 RTCRtpSender接口扩展
+
+点对点DTMF的`RTCRtpSender`接口API扩展如下所示。
+
+```webidl
+partial interface RTCRtpSender {
+  readonly attribute RTCDTMFSender? dtmf;
+};
+```
+
+**属性：**
+
+- RTCDTMFSender类型的`dtmf`，只读，可空：请求读值时，`dtmf`属性返回[Dtmf]内部槽的值，其值表示可用于发送DTMF的`RTCDTMFSender`，如果未被设置，则返回`null`。 当`RTCRtpSender`的[SenderTrack]的类型为`"audio"`时，[Dtmf]内部槽会被设置。
+
+### 7.3 `RTCDTMFSender`
+
+用户代理运行以下步骤 **创建一个`RTCDTMFSender`** ：
+
+1. 设 *dtmf* 为新创建的`RTCDTMFSender`对象。
+2. 为 *dtmf* 创建[Duration]槽。
+3. 为 *dtmf* 创建[InterToneGap]槽。
+4. 为 *dtmf* 创建[ToneBuffer]槽。
+
+```webidl
+[Exposed=Window]
+interface RTCDTMFSender : EventTarget {
+  void insertDTMF(DOMString tones,
+  optional unsigned long duration = 100,
+  optional unsigned long interToneGap = 70);
+  attribute EventHandler ontonechange;
+  readonly attribute boolean canInsertDTMF;
+  readonly attribute DOMString toneBuffer;
+};
+```
+
+**属性：**
+
+- EventHandler类型的`ontonechange`：该事件处理器的事件类型为`tonechange`。
+- boolean类型的`canInsertDTMF`，只读：指示`RTCDTMFSender`类型的 *dtmfSender* 能否发送DTMF。请求读值时，用户代理必须返回[确认DTMF能否被发送](http://w3c.github.io/webrtc-pc/#dfn-determine-if-dtmf-can-be-sent)的运行结果。
+- DOMString类型的`toneBuffer`，只读：`toneBuffer`属性必须返回剩余要播放的音调列表。此列表的语法，内容和解释，详见[insertDTMF](http://w3c.github.io/webrtc-pc/#dom-rtcdtmfsender-insertdtmf)。
+
+**方法：**
+
+- *insertDTMF* ：`RTCDTMFSender`对象的`insertDTMF`方法被用于DTMF音调。<br>  `tone`参数被视为一系列字符。相关的DTMF音调由字符0-9，A-D，\#和\*生成。字符a-d必须在输入时被标准化为大写字符，等同于A-D.如[RTCWEB-AUDIO](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-AUDIO)第3节所述，需要支持字符0到9，A到D，\#和\*。 必须支持字符','，它指示在处理`tone`参数中的下一个字符之前的延迟2秒。所有其他字符（仅其他字符）必须被视为 **无法识别** 。<br>  `duration`参数指示用于在音调参数中传递的每个字符的持续时间（以毫秒为单位）。持续时间不能超过6000毫秒或小于40毫秒。每种音调的默认持续时间为100 ms。<br>  `interToneGap`参数指示音调之间的间隔（ms）。用户代理将其限制为30毫秒到6000毫秒的某个值。默认值为70毫秒。<br>  浏览器可以增加`duration`和`interToneGap`时间，以使DTMF开始和停止的时间与RTP数据包的边界对齐，但不能超过单个RTP音频数据包的持续时间。<br>  当`insertDTMF()`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *sender* 为用来发送DTMF的`RTCRtpSender`。
+    2. 设 *transceiver* 为与 *sender* 相关联的`RTCRtpTransceiver`对象。
+    3. 若 *transceiver* 的[Stopped]槽为`true`，则抛出一个`InvalidStateError`。
+    4. 若 *transceiver* 的[CurrentDirection]槽为`recvonly`或`inactive`，则抛出一个`InvalidStateError`。
+    5. 设 *dtmf* 为与 *sender* 相关联的`RTCDTMFSender`。
+    6. 若[确认DTMF能否被发送](http://w3c.github.io/webrtc-pc/#dfn-determine-if-dtmf-can-be-sent)的运行结果为`false`，则抛出一个`InvalidStateError`。
+    7. 设 *tones* 为方法的第一个参数。
+    8. 若 *tones* 包含不能识别的字符，则抛出一个`InvalidCharacterError`。
+    9. 设[ToneBuffer]槽为 *tones* 。
+    10. 设 *dtmf* 的[Duration]槽为`duration`参数的值。
+    11. 设 *dtmf* 的[InterToneGap]槽为`interToneGap`参数的值。
+    12. 若`duration`参数的值少于40ms，则将 *dtmf* 的[Duration]槽设为40ms。
+    13. 若`duration`参数的值大于6000ms，则将 *dtmf* 的[Duration]槽设为6000ms。
+    14. 若`interToneGap`参数的值少于30ms，则将 *dtmf* 的[InterToneGap]槽设为30ms。
+    15. 若`interToneGap`参数的值大于6000ms，则将 *dtmf* 的[InterToneGap]槽设为6000ms。
+    16. 若[ToneBuffer]槽为空字符串，则终止后续步骤。
+    17. 如果计划运行 *Playout* 任务，则终止这些步骤; 否则将包含以下步骤的任务（播出任务）加入操作队列：
+        1.  若 *transceiver* 的[Stopped]槽为`true`，则终止这些步骤。
+        2.  若 *transceiver* 的[CurrentDirection]槽为`recvonly`或`inactive`，则终止这些步骤。
+        3.  若[ToneBuffer]槽包含空字符串，则利用`RTCDTMFToneChangeEvent`接口触发名为`tonechange`的事件，其`RTCDTMFSender`对象的`tone`属性被设为空字符串，最后终止这些步骤。
+        4.  从[ToneBuffer]中移除第一个字符，并设那个字符为 *tone* 。
+        5.  如果 *tone* 为","，则在与之关联的RTP媒体流上延迟发送音调2000ms，并将一个被标记为 *Playout* 的任务加入操作队列，2000ms后执行。
+        6.  如果 *tone* 不是","，则在[Duration]ms后使用合适的编解码器开始在与之关联的RTP媒体流上播放 *tone* ，然后将一个被标记为 *Playout* 的任务加入操作队列，[InterToneGap]ms后执行。
+        7.  利用`RTCDTMFToneChangeEvent`接口触发名为`tonechange`的事件，其`RTCDTMFSender`对象的`tone`属性被设为空字符串。
+
+因为`insertDTMF`替换了音调缓冲区，为了添加正在播放的DTMF音调，必须使用包含剩余音调（存储在[ToneBuffer]槽中）和附加在一起的新音调的字符串调用`insertDTMF`。使用空`tone`参数调用`insertDTMF`可用于取消在当前播放音调之后等待播放的所有音调。
+
+### 7.3 canInsertDTMF算法
+
+为了确定`RTCDTMFSender`实例 *dtmfSender* **能否发送DTMF** ，用户代理必须将包含以下步骤的任务加入操作队列：
+
+1. 设 *sender* 为与 *dtmfSender* 相关联的`RTCRtpSender`对象。
+2. 设 *transceiver* 为与 *sender* 相关联的`RTCRtpTransceiver`对象。
+3. 设 *connection* 为与 *sender* 相关联的`RTCPeerConnection`对象。
+4. 若 *connection* 的[RTCPeerConnectionState]不是`"connected"`，则返回`false`。
+5. 若 *sender* 的[SenderTrack]为`null`，则返回`false`。
+6. 若 *transceiver* 的[CurrentDirection]槽不是`"sendrecv"`或`"sendonly"`，则返回`false`。
+7. 若 *sender* 的`[SendEncodings][0].active`为`false`，则返回`false`。
+8. 如果该 *sender* 没有为mimetype `"audio/telephone-event"`协商好编解码器，则返回`false`。
+9. 否则返回`true`。
+
+### 7.4 RTCDTMFToneChangeEvent
+
+`tonechange`事件使用`RTCDTMFToneChangeEvent`接口。
+
+```webidl
+[Constructor(DOMString type, RTCDTMFToneChangeEventInit eventInitDict),
+  Exposed=Window]
+interface RTCDTMFToneChangeEvent : Event {
+  readonly attribute DOMString tone;
+};
+```
+
+**构造器：**
+
+- RTCDTMFToneChangeEvent
+
+**属性：** 
+
+- DOMString类型的`tone`，只读：`tone`属性包含刚刚开始播放的音调（包括","）的字符（详见[insertDTMF]）。 如果该值为空字符串，则表示[ToneBuffer]槽为空字符串，并且前一个音调已完成播放。
+
+```webidl
+dictionary RTCDTMFToneChangeEventInit : EventInit {
+  required DOMString tone;
+};
+```
+
+`RTCDTMFToneChangeEventInit`字典成员：
+
+- DOMString类型的`tone`：`tone`属性包含刚刚开始播放的音调（包括","）的字符（详见[insertDTMF]）。 如果该值为空字符串，则表示[ToneBuffer]槽为空字符串，并且前一个音调已完成播放。
