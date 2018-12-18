@@ -2897,3 +2897,135 @@ dictionary RTCDTMFToneChangeEventInit : EventInit {
 `RTCDTMFToneChangeEventInit`字典成员：
 
 - DOMString类型的`tone`：`tone`属性包含刚刚开始播放的音调（包括","）的字符（详见[insertDTMF]）。 如果该值为空字符串，则表示[ToneBuffer]槽为空字符串，并且前一个音调已完成播放。
+
+## 8. 统计模型
+
+### 8.1 介绍
+
+基本统计模型是浏览器以统计对象的形式维护的一组受监控对象的统计信息。
+**选择器** 可以引用一组相关的对象。例如，选择器可以是`MediaStreamTrack`。要使媒体轨成为有效的选择器，它必须是由发出统计请求的`RTCPeerConnection`对象发送或接收的`MediaStreamTrack`。调用Web应用程序为`getStats()`方法提供选择器，浏览器根据[统计信息选择算法](http://w3c.github.io/webrtc-pc/#dfn-stats-selection-algorithm)发出（在JavaScript中）与选择器相关的一组统计信息。请注意，该算法将用到选择器的发送端或接收端。
+`stats`对象中返回的统计信息被设计为可以根据`RTCStats`字典的`id`成员将重复查询链接起来。因此，Web应用程序可以通过在该时段的开始和结束时刻请求测量，来对给定时间段内的应用状态进行完整的统计。
+除少数异常情况外，受监控对象一旦创建，就会在与其关联的`RTCPeerConnection`期间一直存在。这样可以确保`getStats()`返回的结果中的统计信息在关闭对端连接之后仍然可用。
+只有少数受监控对象的生命周期较短。对于这些对象，它们的生命周期在算法将它们[删除](http://w3c.github.io/webrtc-pc/#dfn-delete-stats)时结束。在删除时，将在包含`RTCStatsReport`对象的单个`statsended`事件中发出其统计信息的记录，其包含将要同时被删除的所有对象的统计信息。后续`getStats()`结果中不再提供这些对象的统计信息。[WEBRTC-STATS](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-STATS)中的对象描述中由关于何时删除这些被监视对象的阐述。
+
+### 8.2 `RTCPeerConnection`接口扩展
+
+统计API扩展的`RTCPeerConnection`接口如下所示：
+
+```webidl
+partial interface RTCPeerConnection {
+  Promise<RTCStatsReport> getStats(optional MediaStreamTrack? selector = null);
+  attribute EventHandler onstatsended;
+};
+```
+
+**属性：**
+
+- EventHandler类型的`onstatsend`：本事件处理器的事件类型为`statsend`。<br>  为了 **删除** 与`RTCPeerConnection`对象 *connection* 相关联的一些被监控对象的 **统计信息** ，用户代理必须并行地运行以下步骤：
+    1. 只收集将被删除的被监控对象的统计信息。这些统计信息必须代表被删除时的最终值。这些被监控对象的统计信息一定不能在后续的`getStats()`调用中出现。
+    2. 将包含以下信息的任务加入操作队列：
+       1. 设 *report* 为一个新的`RTCStatsReport`对象。
+       2. 对于每个被监控对象，利用为该受监视对象收集的统计信息创建一个新的相关统计信息对象，并将其添加至 *report* 中。
+       3. 利用`RTCStatsEvent`接口触发名为`statsended`的事件，其`report`属性被设为 *report* 。
+   
+**方法：**
+
+- *getStats* ：为给定的选择器收集信息，并异步地报告结果。<br>  当`getStats()`方法被调用，用户代理必须按以下步骤运行：
+    1. 设 *selectorArg* 为方法的第一个参数。
+    2. 设 *connection* 为调用此方法的`RTCPeerConnection`对象。
+    3. 若 *selectorArg* 为`null`，则设 *selector* 为`null`。
+    4. 如果 *selectorArg* 是`MediaStreamTrack`类型，则设 *selector* 为 *connection* 上`track`成员与 *selectorArg* 匹配的`RTCRtpSender`或`RTCRtpReceiver`对象。如果不存在这样的发送端或接收端，或者由多个发送端或接收端符合此条件，则用新创建的`InvalidAccessError`拒绝promise并返回。
+    5. 设 *p* 为一个新的promise。
+    6. 并行地运行以下步骤：
+       1. 根据[统计信息选择算法](http://w3c.github.io/webrtc-pc/#dfn-stats-selection-algorithm)收集由 *selector* 表示的统计信息。
+       2. 利用上一步得到的包含收集到的统计信息的`RTCStatsReport`对象解析 *p* 。
+    7. 返回 *p* 。
+
+### 8.3 `RTCStatsReport`对象
+
+`getStats()`方法以`RTCStatsReport`对象的形式提供成功的运行结果。`RTCStatsReport`对象是标识被检查对象（`RTCStats`实例中的`id`属性）的字符串和对应`RTCStats`派生词典之间的映射。
+`RTCStatsReport`可以由几个`RTCStats`派生的字典组成，每个字典为底层对象报告其统计信息，底层对象的实现与选择器相关。通过对所有统计数据中的某种类型求和，可以求得选择器的总量; 例如，如果`RTCRtpSender`使用多个SSRC通过网络传输媒体轨，则`RTCStatsReport`可以为每个SSRC持有一个对应的`RTCStats`派生字典（可以通过"ssrc"统计属性的值来区分）。
+
+```webidl
+[Exposed=Window]
+interface RTCStatsReport {
+  readonly maplike<DOMString, object>;
+};
+```
+
+此接口有"entries", "forEach", "get", "has", "keys", "values", @@iterator方法和一个`readonly maplike`的"size"获取器。
+使用这些方法来检索此统计报告由`RTCStats`组成的各种字典。所有被支持的属性名称[WEBIDL-1](http://w3c.github.io/webrtc-pc/#bib-WEBIDL-1)的集合被定义为此统计报告生成的所有`RTCStats`派生词典的id集合。
+
+### 8.4 `RTCStats`字典
+
+`RTCStats`字典表示通过检查特定受监视对象而构造的`stats`对象。`RTCStats`字典是一种基本类型，它指定一组默认属性，例如`timestamp`和`type`。通过扩展`RTCStats`字典添加特定的统计信息。
+注意，虽然统计信息名称已被标准化，但任何给定的实现都可能使用实验值或对Web应用程序透明的值。因此，应用程序必须准备好处理未知的统计数据。
+统计数据需要彼此同步才能产生合理的计算值; 例如，如果同时报告"bytesSent"和"packetsSent"，则需要在相同的时间间隔内报告它们，以便"average packet size"可以被计算为"bytes/packets" - 如果时间间隔不同，则会产生错误。因此，实现必须返回`RTCStats`派生字典中所有统计信息的同步值。
+
+```webidl
+dictionary RTCStats {
+  required DOMHighResTimeStamp timestamp;
+  required RTCStatsType type;
+  required DOMString id;
+};
+```
+
+`RTCStats`字典成员：
+
+- DOMHighResTimeStamp类型的`timestamp`：DOMHighResTimeStamp类型[HIGHRES-TIME](http://w3c.github.io/webrtc-pc/#bib-HIGHRES-TIME)的`timestamp`与本对象关联。本时间戳代表相对于UNIX纪元（1970年1月1日，UTC）的时间。对于来自远程数据源（例如来自接收的RTCP分组）的统计数据，时间戳表示信息到达本端的时间。如果适用的话，可以在`RTCStats`的派生字典中的附加字段中找到远程时间戳。
+- RTCStatsType类型的`type`：本对象的类型。`type`属性必须被初始化为本`RTCStats`字典代表的最具体类型的名字。
+- DOMString类型的`id`：与本对象关联的唯一标识符，用于生成此`RTCStats`对象。如果从两个不同的`RTCStatsReport`对象中提取出的两个`RTCStats`对象是通过检查相同的底层对象生成的，则它们必须具有相同的`id`。用户代理可以自由选择`id`的格式，只要它符合上述要求即可。
+
+`RTCStatsType`的合法值集合，以及它们表示的`RTCStats`的派生字典，都被记录在[WEBRTC-STATS](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-STATS)。
+
+### 8.5 `RTCStatsEvent`
+
+`statsended`事件使用`RTCStatsEvent`。
+
+```webidl
+[Constructor(DOMString type, RTCStatsEventInit eventInitDict),
+  Exposed=Window]
+interface RTCStatsEvent : Event {
+  readonly attribute RTCStatsReport report;
+};
+```
+
+**构造器：**
+
+- RTCStatsEvent
+
+**属性：**
+
+- RTCStatsReport类型的`report`：`report`属性包含`RTCStats`对象相应子类的`stats`对象，给出受监视对象生命周期结束时的相关统计信息值。
+
+```webidl
+dictionary RTCStatsEventInit : EventInit {
+  required RTCStatsReport report;
+};
+```
+
+`RTCStatsEventInit`字典成员：
+
+- RTCStatsReport类型的`report`，必需项：包含`RTCStats`对象，提供生命周期已结束对象的统计信息。
+
+### 8.6 统计信息选择算法
+
+**统计信息选择算法** 如下所示：
+
+1. 设 *result* 为一个空`RTCStatsReport`对象。
+2. 若 *selector* 为`null`，则为整个 *connection* 收集统计信息，将它们添加入 *result* 并将其返回，然后终止后续步骤。
+3. 若 *selector* 为`RTCRtpSender`，则收集统计信息并将以下对象加入 *result* 。
+    - 所有代表被 *selector* 发送的RTP流的`RTCOutboundRTPStreamStats`对象。
+    - 所有被`RTCOutboundRTPStreamStats`对象直接或间接引用的统计对象。
+4. 若 *selector* 为`RTCRtpReceiver`，则收集统计信息并将以下对象加入 *result* 。
+    - 所有代表被 *selector* 接收的RTP流的`RTCOutboundRTPStreamStats`对象。
+    - 所有被`RTCOutboundRTPStreamStats`对象直接或间接引用的统计对象。
+5. 返回 *result* 。
+
+### 8.7 强制实施统计数据
+
+[WEBRTC-STATS](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-STATS)中罗列的统计数据应该能覆盖大范围的使用场景。但并非所有WebRTC实现都必须实现它们。
+当`PeerConnection`上存在相应的对象时，实现必须支持生成以下类型的统计信息，以及这些类型对该对象有效时所列出的属性：
+
+- `RTCRTPStreamStats`及其`ssrc, kind, transportId, codecId, nackCount`属性。
+- 
