@@ -3090,3 +3090,13 @@ async function gatherStats() {
 }
 ```
 
+## 9. 用于网络的Medis Stream API扩展
+
+### 9.1 介绍
+
+[GETUSERMEDIA](https://www.w3.org/TR/webrtc/#bib-GETUSERMEDIA)规范中定义的`MediaStreamTrack`接口通常代表一路音频流或者视频流数据。一个或多个`MediaStreamTrack`可被`MediaStream`所收集（严格来说，[GETUSERMEDIA]中定义的`MediaStream`可以包含零或多个`MediaStreamTrack`对象）。
+可以扩展`MediaStreamTrack`以表示来自或被发送到远程对端（例如，不仅仅是本地相机）的媒体流。本节将介绍在`MediaStreamTrack`对象上启用此功能所需的扩展。 [RTCWEB-RTP](https://www.w3.org/TR/webrtc/#bib-RTCWEB-RTP)，[RTCWEB-AUDIO](https://www.w3.org/TR/webrtc/#bib-RTCWEB-AUDIO)和[RTCWEB-TRANSPORT](https://www.w3.org/TR/webrtc/#bib-RTCWEB-TRANSPORT)描述了如何将媒体传输到对端。
+发送给另一个对端的`MediaStreamTrack`将作为一个且仅一个`MediaStreamTrack`在接收端显示。对端被定义为支持该规范的用户代理。此外，发送端一侧的应用程序可以指示`MediaStreamTrack`所属的`MediaStream`对象。对应的`MediaStream`对象将在接收端一侧被创建（如果尚未存在）并相应地填充。
+正如本文档前面提到的，应用程序可以使用`RTCRtpSender`和`RTCRtpReceiver`对象来对`MediaStreamTrack`的传输和接收进行更细粒度的控制。
+通道是`MediaStream`规范中的最小单元。通道旨在被编码在一起以便传输，例如，RTP有效载荷类型。需要被编解码器共同编码的所有通道必须位于同一个`MediaStreamTrack`中，编解码器应该能够编码或丢弃媒体轨中的所有通道。
+给定`MediaStreamTrack`的输入和输出的概念也同样适用于通过网络传输的`MediaStreamTrack`对象。由`RTCPeerConnection`对象创建的`MediaStreamTrack`（如本文档前面所述）将把远程对端接收的数据作为输入。类似地，来自本源的`MediaStreamTrack`（例如通过[GETUSERMEDIA](https://www.w3.org/TR/webrtc/#bib-GETUSERMEDIA)的摄像机）将具有输出，该输出表示传输到远程对端的内容，前提是该对象与`RTCPeerConnection`对象一起使用。
