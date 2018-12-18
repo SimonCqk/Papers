@@ -3025,7 +3025,68 @@ dictionary RTCStatsEventInit : EventInit {
 ### 8.7 强制实施统计数据
 
 [WEBRTC-STATS](http://w3c.github.io/webrtc-pc/#bib-WEBRTC-STATS)中罗列的统计数据应该能覆盖大范围的使用场景。但并非所有WebRTC实现都必须实现它们。
-当`PeerConnection`上存在相应的对象时，实现必须支持生成以下类型的统计信息，以及这些类型对该对象有效时所列出的属性：
+当`PeerConnection`上存在相应的对象时，实现必须支持生成以下类型的统计信息，以及这些类型对该对象来说有效时所列出的以下属性：
 
 - `RTCRTPStreamStats`及其`ssrc, kind, transportId, codecId, nackCount`属性。
-- 
+- `RTCReceivedRTPStreamStats`及其继承字典类型属性中的所有必需项，除此之外还有`packetsReceived, packetsLost, jitter, packetsDiscarded`属性。
+- `RTCInboundRTPStreamStats`及其继承字典类型属性中的所有必需项，除此之外还有`bytesReceived, trackId, receiverId, remoteId, framesDecoded`属性。
+- `RTCRemoteInboundRTPStreamStats`及其继承字典类型属性中的所有必需项，除此之外还有`localId, roundTripTime`属性。
+- `RTCSentRTPStreamStats`及其继承字典类型属性中的所有必需项，除此之外还有`packetsSent, bytesSent`属性。
+- `RTCOutboundRTPStreamStats`及其继承字典类型属性中的所有必需项，除此之外还有`trackId, senderId, remoteId, framesEncoded`属性。
+- `RTCRemoteOutboundRTPStreamStats`及其继承字典类型属性中的所有必需项，除此之外还有`localId, remoteTimestamp`属性。
+- `RTCPeerConnectionStats`及其`dataChannelsOpened, dataChannelsClosed`属性。
+- `RTCDataChannelStats`及其`label, protocol, datachannelId, state, messagesSent, bytesSent, messagesReceived, bytesReceived`属性。
+- `RTCMediaStreamStats`及其`streamIdentifer, trackIds`属性。
+- `RTCMediaStreamTrackStats`及其`detached`属性。
+- `RTCMediaHandlerStats`及其`trackIdentifier, remoteSource, ended`属性。
+- `RTCAudioHandlerStats`及其`audioLevel`属性。
+- `RTCVideoHandlerStats`及其`frameWidth, frameHeight, framesPerSecond`属性。
+- `RTCVideoSenderStats`及其`framesSent`属性。
+- `RTCVideoReceiverStats`及其`framesReceived, framesDecoded, framesDropped, framesCorrupted`属性。
+- `RTCCodecStats`及其`payloadType, codec, clockRate, channels, sdpFmtpLine`属性。
+- `RTCTransportStats`及其`bytesSent, bytesReceived, rtcpTransportStatsId, selectedCandidatePairId, localCertificateId, remoteCertificateId`属性。
+- `RTCIceCandidatePairStats`及其`transportId, localCandidateId, remoteCandidateId, state, priority, nominated, bytesSent, bytesReceived, totalRoundTripTime, currentRoundTripTime`属性。
+- `RTCIceCandidateStats`及其`address, port, protocol, candidateType, url`属性。
+- `RTCCertificateStats`及其`fingerprint, fingerprintAlgorithm, base64Certificate, issuerCertificateId`属性。
+
+实现可以支持生成[WEBRTC-STATS](https://www.w3.org/TR/webrtc/#bib-WEBRTC-STATS)中定义的任何其他统计信息，也可以生成尚未记录文档中的统计信息。
+
+### 8.8 GetStats例子
+
+考虑用户遇到不良声音并且应用程序想要确定其原因是否是丢包的情况。可能使用以下示例代码：
+
+```js
+EXAMPLE 9
+async function gatherStats() {
+  try {
+    const sender = pc.getSenders()[0];
+    const baselineReport = await sender.getStats();
+    await new Promise((resolve) => setTimeout(resolve, aBit)); // ... wait a bit
+    const currentReport = await sender.getStats();
+
+    // compare the elements from the current report with the baseline
+    for (let now of currentReport.values()) {
+      if (now.type != 'outbound-rtp') continue;
+
+      // get the corresponding stats from the baseline report
+      const base = baselineReport.get(now.id);
+
+      if (base) {
+        const remoteNow = currentReport.get(now.remoteId);
+        const remoteBase = baselineReport.get(base.remoteId);
+
+        const packetsSent = now.packetsSent - base.packetsSent;
+        const packetsReceived = remoteNow.packetsReceived - remoteBase.packetsReceived;
+
+        const fractionLost = (packetsSent - packetsReceived) / packetsSent;
+        if (fractionLost > 0.3) {
+          // if fractionLost is > 0.3, we have probably found the culprit
+        }
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+```
+
