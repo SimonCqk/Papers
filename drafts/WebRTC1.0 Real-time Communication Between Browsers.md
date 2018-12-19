@@ -3099,4 +3099,31 @@ async function gatherStats() {
 发送给另一个对端的`MediaStreamTrack`将作为一个且仅一个`MediaStreamTrack`在接收端显示。对端被定义为支持该规范的用户代理。此外，发送端一侧的应用程序可以指示`MediaStreamTrack`所属的`MediaStream`对象。对应的`MediaStream`对象将在接收端一侧被创建（如果尚未存在）并相应地填充。
 正如本文档前面提到的，应用程序可以使用`RTCRtpSender`和`RTCRtpReceiver`对象来对`MediaStreamTrack`的传输和接收进行更细粒度的控制。
 通道是`MediaStream`规范中的最小单元。通道旨在被编码在一起以便传输，例如，RTP有效载荷类型。需要被编解码器共同编码的所有通道必须位于同一个`MediaStreamTrack`中，编解码器应该能够编码或丢弃媒体轨中的所有通道。
-给定`MediaStreamTrack`的输入和输出的概念也同样适用于通过网络传输的`MediaStreamTrack`对象。由`RTCPeerConnection`对象创建的`MediaStreamTrack`（如本文档前面所述）将把远程对端接收的数据作为输入。类似地，来自本源的`MediaStreamTrack`（例如通过[GETUSERMEDIA](https://www.w3.org/TR/webrtc/#bib-GETUSERMEDIA)的摄像机）将具有输出，该输出表示传输到远程对端的内容，前提是该对象与`RTCPeerConnection`对象一起使用。
+`MediaStreamTrack`输入和输出的概念也同样适用于通过网络传输的`MediaStreamTrack`对象。由`RTCPeerConnection`对象创建的`MediaStreamTrack`（如本文档前面所述）将把远程对端接收的数据作为输入。类似地，来自本源的`MediaStreamTrack`（例如通过[GETUSERMEDIA](https://www.w3.org/TR/webrtc/#bib-GETUSERMEDIA)的摄像机）将具有输出，该输出表示传输到远程对端的内容，前提是该对象与`RTCPeerConnection`对象一起使用。
+[GETUSERMEDIA](http://w3c.github.io/webrtc-pc/#bib-GETUSERMEDIA)中提到的复制`MediaStream`和`MediaStreamTrack`对象的概念也适用于此处。例如，可以在视频会议场景中使用此功能，以在本地监视器中显示来自用户摄像头和麦克风的本地视频，同时仅将音频发送到远程对等端（例如，对使用"视频静音"功能的用户作出响应）。 在某些情况下，将不同的`MediaStreamTrack`对象组合到新的`MediaStream`对象中非常有用。
+
+> 注意：在本文档中，我们仅指定以下与`RTCPeerConnection`一起使用的相关对象的各个方面。有关使用`MediaStream`和`MediaStreamTrack`的一般信息，请参阅[GETUSERMEDIA](http://w3c.github.io/webrtc-pc/#bib-GETUSERMEDIA)文档中对象的原始定义。
+
+### 9.2 MediaStream
+
+#### 9.2.1 id
+
+`MediaStream`中指定的`id`属性返回该流的唯一标识id，因此流可以被远程对端的`RTCPeerConnection` API识别。
+当`MediaStream`被创建为代表从远程对等端获取的流时，`id`属性根据远程数据源提供的信息初始化。
+
+> 注意：`MediaStream`对象的id对于流的数据源来说是唯一的，但这并不意味着不能以流的副本结束整个流程。例如，本地生成的流媒体轨可以使用`RTCPeerConnection`从一个用户代理发送到远程对等端，然后以相同的方式发送回原用户代理，在这种情况下，原用户代理将具有多个相同id的流（本地生成的id和远程peer发送的id）。
+
+### 9.3 MediaStreamTrack
+
+在非本地媒体源的场景下（RTP源，每个`MediaStreamTrack`都与一个`RTCRtpReceiver`相关联），`MediaStreamTrack`对象一直是`MediaStream`对象的强引用。
+每当`RTCRtpReceiver`在对应`MediaStreamTrack`的静音RTP源上接收数据，并且`RTCRtpTraceceiver`对象的[Receptive]槽是`RTCRtpReceiver`成员，且值为`true`时，它必须将设置相应`MediaStreamTrack`的静音状态为`false`的任务加入操作队列。
+当`RTCRtpReceiver`已接收的RTP源媒体流中的某一SSRC由于收到BYE信号或因超时而被删除时，它必须将一个把相应`MediaStreamTrack`的静音状态设置为`true`的任务加入操作队列并等待执行。注意，`setRemoteDescription`还可以将媒体轨的静音状态设置为`true`。
+**添加媒体轨，移除媒体轨和设置媒体轨静音状态** 的操作在[GETUSERMEDIA](http://w3c.github.io/webrtc-pc/#bib-GETUSERMEDIA)中指定。
+当`RTCRtpReceiver`接收端生成的`MediaStreamTrack`轨已经结束[GETUSERMEDIA](http://w3c.github.io/webrtc-pc/#bib-GETUSERMEDIA)时（例如通过调用`receiver.track.stop`），用户代理可以选择释放为传入流预先分配的资源，例如关闭解码器接收器。
+
+### 9.3.1 MediaTrackSupportedConstraints, MediaTrackCapabilities, MediaTrackConstraints及MediaTrackSettings
+
+[GETUSERMEDIA]概述了`MediaTrackSupportedConstraints，MediaTrackCapabilites，MediaTrackConstraints和MediaTrackSettings`的基本内容。但是，由`RTCPeerConnection`提供的`MediaStreamTrack`对象中的`MediaTrackSettings`的成员变量，将通过`setRemoteDescription`应用的远程`RTCSessionDescription`描述和实际RTP数据提供的数据进行填充。这意味着某些成员（例如`facingMode，echoCancellation，latency，deviceId和groupId`）将始终缺失。
+
+## 10. 例子与调用流程
+
