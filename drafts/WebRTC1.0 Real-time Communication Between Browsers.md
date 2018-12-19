@@ -3127,3 +3127,195 @@ async function gatherStats() {
 
 ## 10. 例子与调用流程
 
+### 10.1 简易的点对点示例
+
+当两个对等端决定要建立彼此的连接时，它们都将经历这些步骤。STUN/TURN服务器配置描述了可用于获取公共IP地址或设置NAT遍历的服务器。在通信最开始，它们还必须使用相同的频外机制互相发送信令通道内的数据。
+
+```js
+EXAMPLE 10
+const signaling = new SignalingChannel(); // handles JSON.stringify/parse
+const constraints = {audio: true, video: true};
+const configuration = {iceServers: [{urls: 'stuns:stun.example.org'}]};
+const pc = new RTCPeerConnection(configuration);
+
+// send any ice candidates to the other peer
+pc.onicecandidate = ({candidate}) => signaling.send({candidate});
+
+// let the "negotiationneeded" event trigger offer generation
+pc.onnegotiationneeded = async () => {
+  try {
+    await pc.setLocalDescription(await pc.createOffer());
+    // send the offer to the other peer
+    signaling.send({desc: pc.localDescription});
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+// once media for a remote track arrives, show it in the remote video element
+pc.ontrack = (event) => {
+  // don't set srcObject again if it is already set.
+  if (remoteView.srcObject) return;
+  remoteView.srcObject = event.streams[0];
+};
+
+// call start() to initiate
+async function start() {
+  try {
+    // get a local stream, show it in a self-view and add it to be sent
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+    selfView.srcObject = stream;
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+signaling.onmessage = async ({desc, candidate}) => {
+  try {
+    if (desc) {
+      // if we get an offer, we need to reply with an answer
+      if (desc.type == 'offer') {
+        await pc.setRemoteDescription(desc);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+        await pc.setLocalDescription(await pc.createAnswer());
+        signaling.send({desc: pc.localDescription});
+      } else if (desc.type == 'answer') {
+        await pc.setRemoteDescription(desc);
+      } else {
+        console.log('Unsupported SDP type. Your code may differ here.');
+      }
+    } else if (candidate) {
+      await pc.addIceCandidate(candidate);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+```
+
+### 10.2 进阶的点对点示例-热身
+
+当两个对等端决定彼此建立连接并希望ICE，DTLS和媒体连接"热身"以便它们准备好立即发送和接收媒体数据时，它们都会经历这些步骤。
+
+```js
+EXAMPLE 11
+const signaling = new SignalingChannel();
+const configuration = {iceServers: [{urls: 'stuns:stun.example.org'}]};
+const audio = null;
+const audioSendTrack = null;
+const video = null;
+const videoSendTrack = null;
+const started = false;
+let pc;
+
+// Call warmup() to warm-up ICE, DTLS, and media, but not send media yet.
+async function warmup(isAnswerer) {
+  pc = new RTCPeerConnection(configuration);
+  if (!isAnswerer) {
+    audio = pc.addTransceiver('audio');
+    video = pc.addTransceiver('video');
+  }
+
+  // send any ice candidates to the other peer
+  pc.onicecandidate = (event) => {
+    signaling.send(JSON.stringify({candidate: event.candidate}));
+  };
+
+  // let the "negotiationneeded" event trigger offer generation
+  pc.onnegotiationneeded = async () => {
+    try {
+      await pc.setLocalDescription(await pc.createOffer());
+      // send the offer to the other peer
+      signaling.send(JSON.stringify({desc: pc.localDescription}));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // once media for the remote track arrives, show it in the remote video element
+  pc.ontrack = async (event) => {
+    try {
+      if (event.track.kind == 'audio') {
+        if (isAnswerer) {
+          audio = event.transceiver;
+          audio.direction = 'sendrecv';
+          if (started && audioSendTrack) {
+            await audio.sender.replaceTrack(audioSendTrack);
+          }
+        }
+      } else if (event.track.kind == 'video') {
+        if (isAnswerer) {
+          video = event.transceiver;
+          video.direction = 'sendrecv';
+          if (started && videoSendTrack) {
+            await video.sender.replaceTrack(videoSendTrack);
+          }
+        }
+      }
+
+      // don't set srcObject again if it is already set.
+      if (remoteView.srcObject) return;
+      remoteView.srcObject = event.streams[0];
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  try {
+    // get a local stream, show it in a self-view and add it to be sent
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+    selfView.srcObject = stream;
+    audioSendTrack = stream.getAudioTracks()[0];
+    if (started) {
+      await audio.sender.replaceTrack(audioSendTrack);
+    }
+    videoSendTrack = stream.getVideoTracks()[0];
+    if (started) {
+      await video.sender.replaceTrack(videoSendTrack);
+    }
+  } catch (err) {
+    console.erro(err);
+  }
+}
+
+// Call start() to start sending media.
+function start() {
+  started = true;
+  signaling.send(JSON.stringify({start: true}));
+}
+
+signaling.onmessage = async (event) => {
+  if (!pc) warmup(true);
+
+  try {
+    const message = JSON.parse(event.data);
+    if (message.desc) {
+      const desc = message.desc;
+
+      // if we get an offer, we need to reply with an answer
+      if (desc.type == 'offer') {
+        await pc.setRemoteDescription(desc);
+        await pc.setLocalDescription(await pc.createAnswer());
+        signaling.send(JSON.stringify({desc: pc.localDescription}));
+      } else {
+        await pc.setRemoteDescription(desc);
+      }
+    } else if (message.start) {
+      started = true;
+      if (audio && audioSendTrack) {
+        await audio.sender.replaceTrack(audioSendTrack);
+      }
+      if (video && videoSendTrack) {
+        await video.sender.replaceTrack(videoSendTrack);
+      }
+    } else {
+      await pc.addIceCandidate(message.candidate);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+```
+
