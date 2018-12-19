@@ -3319,3 +3319,292 @@ signaling.onmessage = async (event) => {
 };
 ```
 
+### 10.3 点对点传输示例-媒体数据先于信号
+
+应答方可能希望在发送应答的同时并行地发送媒体数据，邀请方可能希望在应答到达之前渲染媒体。
+
+```js
+EXAMPLE 12
+const signaling = new SignalingChannel();
+const configuration = {iceServers: [{urls: 'stuns:stun.example.org'}]};
+let pc;
+
+// call start() to initiate
+async function start() {
+  pc = new RTCPeerConnection(configuration);
+
+  // send any ice candidates to the other peer
+  pc.onicecandidate = (event) => {
+    signaling.send(JSON.stringify({candidate: event.candidate}));
+  };
+
+  // let the "negotiationneeded" event trigger offer generation
+  pc.onnegotiationneeded = async () => {
+    try {
+      await pc.setLocalDescription(await pc.createOffer());
+      // send the offer to the other peer
+      signaling.send(JSON.stringify({desc: pc.localDescription}));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  try {
+    // get a local stream, show it in a self-view and add it to be sent
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+    selfView.srcObject = stream;
+    // Render the media even before ontrack fires.
+    remoteView.srcObject = new MediaStream(pc.getReceivers().map((r) => r.track));
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+signaling.onmessage = async (event) => {
+  if (!pc) start();
+
+  try {
+    const message = JSON.parse(event.data);
+    if (message.desc) {
+      const desc = message.desc;
+
+      // if we get an offer, we need to reply with an answer
+      if (desc.type == 'offer') {
+        await pc.setRemoteDescription(desc);
+        await pc.setLocalDescription(await pc.createAnswer());
+        signaling.send(JSON.stringify({desc: pc.localDescription}));
+      } else {
+        await pc.setRemoteDescription(desc);
+      }
+    } else {
+      await pc.addIceCandidate(message.candidate);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+```
+
+### 10.4 联播示例
+
+客户端可能希望向服务端发动多个RTP编码（联播）。
+
+```js
+EXAMPLE 13
+const signaling = new SignalingChannel();
+const configuration = {'iceServers': [{'urls': 'stuns:stun.example.org'}]};
+let pc;
+
+// call start() to initiate
+async function start() {
+  pc = new RTCPeerConnection(configuration);
+
+  // let the "negotiationneeded" event trigger offer generation
+  pc.onnegotiationneeded = async () => {
+    try {
+      await pc.setLocalDescription(await pc.createOffer());
+      // send the offer to the other peer
+      signaling.send(JSON.stringify({desc: pc.localDescription}));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  try {
+    // get a local stream, show it in a self-view and add it to be sent
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+    selfView.srcObject = stream;
+    pc.addTransceiver(stream.getAudioTracks()[0], {direction: 'sendonly'});
+    pc.addTransceiver(stream.getVideoTracks()[0], {
+      direction: 'sendonly',
+      sendEncodings: [
+        {rid: 'f'},
+        {rid: 'h', scaleResolutionDownBy: 2.0},
+        {rid: 'q', scaleResolutionDownBy: 4.0}
+      ]
+    });
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+signaling.onmessage = async (event) => {
+  try {
+    const message = JSON.parse(event.data);
+    if (message.desc) {
+      await pc.setRemoteDescription(message.desc);
+    } else {
+      await pc.addIceCandidate(message.candidate);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+```
+
+### 10.5 点对点数据示例
+
+此示例展示如何创建`RTCDataChannel`对象并执行将通道连接到其他对等端所需的邀请/应答交换。`RTCDataChannel`用于简单聊天应用程序的上下文中，并且当通道准备就绪，接收到消息以及通道关闭时，监听器都会连接到监视器。
+
+```js
+EXAMPLE 14
+const signaling = new SignalingChannel(); // handles JSON.stringify/parse
+const configuration = {iceServers: [{urls: 'stuns:stun.example.org'}]};
+let pc;
+let channel;
+
+// call start(true) to initiate
+function start(isInitiator) {
+  pc = new RTCPeerConnection(configuration);
+
+  // send any ice candidates to the other peer
+  pc.onicecandidate = (candidate) => {
+    signaling.send({candidate});
+  };
+
+  // let the "negotiationneeded" event trigger offer generation
+  pc.onnegotiationneeded = async () => {
+    try {
+      await pc.setLocalDescription(await pc.createOffer());
+      // send the offer to the other peer
+      signaling.send({desc: pc.localDescription});
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (isInitiator) {
+    // create data channel and setup chat
+    channel = pc.createDataChannel('chat');
+    setupChat();
+  } else {
+    // setup chat on incoming data channel
+    pc.ondatachannel = (event) => {
+      channel = event.channel;
+      setupChat();
+    };
+  }
+}
+
+signaling.onmessage = async ({desc, candidate}) => {
+  if (!pc) start(false);
+
+  try {
+    if (desc) {
+      // if we get an offer, we need to reply with an answer
+      if (desc.type == 'offer') {
+        await pc.setRemoteDescription(desc);
+        await pc.setLocalDescription(await pc.createAnswer());
+        signaling.send({desc: pc.localDescription});
+      } else {
+        await pc.setRemoteDescription(desc);
+      }
+    } else {
+      await pc.addIceCandidate(candidate);
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+function setupChat() {
+  // e.g. enable send button
+  channel.onopen = () => enableChat(channel);
+  channel.onmessage = (event) => showChatMessage(event.data);
+}
+```
+
+### 10.6 浏览器间的调用流程
+
+这展示了两个浏览器之间一个可能发生的呼叫流程示例。它并不展示访问本地媒体或每个回调被触发的过程，而是尝试将其减少为仅显示关键事件和消息。
+
+![flows](https://www.w3.org/TR/webrtc/images/ladder-2party-simple.svg)
+
+### 10.7 DTMF示例
+
+示例假设发送端是一个`RTCRtpSender`。
+每个音调每隔500ms发送一次DTMF信号"1234"。
+
+```js
+EXAMPLE 15
+if (sender.dtmf.canInsertDTMF) {
+  const duration = 500;
+  sender.dtmf.insertDTMF('1234', duration);
+} else {
+  console.log('DTMF function not available');
+}
+```
+
+发送DTMF信号"123"并在发送"2"之后终止。
+
+```js
+EXAMPLE 16
+async function sendDTMF() {
+  if (sender.dtmf.canInsertDTMF) {
+    sender.dtmf.insertDTMF('123');
+    await new Promise((r) => sender.dtmf.ontonechange = (e) => e.tone == '2' && r());
+    // empty the buffer to not play any tone after "2"
+    sender.dtmf.insertDTMF('');
+  } else {
+    console.log('DTMF function not available');
+  }
+}
+```
+
+发送DTMF信号"1234"，并在播放音调时利用`lightKey(key)`点亮活动键（假设`lightKey("")`会将所有键熄灭）。
+
+```js
+EXAMPLE 17
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+if (sender.dtmf.canInsertDTMF) {
+  const duration = 500;
+  sender.dtmf.insertDTMF(sender.dtmf.toneBuffer + '1234', duration);
+  sender.dtmf.ontonechange = async (event) => {
+    if (!event.tone) return;
+    lightKey(event.tone); // light up the key when playout starts
+    await wait(duration);
+    lightKey(''); // turn off the light after tone duration
+  };
+} else {
+  console.log('DTMF function not available');
+}
+```
+
+追加到音调缓冲区始终是安全的。此示例在所有音调播放开始之前以及播放期间追加。
+
+```js
+EXAMPLE 18
+if (sender.dtmf.canInsertDTMF) {
+  sender.dtmf.insertDTMF('123');
+  // append more tones to the tone buffer before playout has begun
+  sender.dtmf.insertDTMF(sender.dtmf.toneBuffer + '456');
+
+  sender.dtmf.ontonechange = (event) => {
+    if (event.tone == '1') {
+      // append more tones when playout has begun
+      sender.dtmf.insertDTMF(sender.dtmf.toneBuffer + '789');
+    }
+  };
+} else {
+  console.log('DTMF function not available');
+}
+```
+
+发送一个一秒的"1"音调并紧跟着一个两秒的"2"音调。
+
+```js
+EXAMPLE 19
+if (sender.dtmf.canInsertDTMF) {
+  sender.dtmf.ontonechange = (event) => {
+    if (event.tone == '1') {
+      sender.dtmf.insertDTMF(sender.dtmf.toneBuffer + '2', 2000);
+    }
+  };
+  sender.dtmf.insertDTMF(sender.dtmf.toneBuffer + '1', 1000);
+} else {
+  console.log('DTMF function not available');
+}
+```
+
+## 11. 错误处理
