@@ -3608,3 +3608,94 @@ if (sender.dtmf.canInsertDTMF) {
 ```
 
 ## 11. 错误处理
+
+本节及其小节本节扩展了[ECMASCRIPT-6.0](http://w3c.github.io/webrtc-pc/#bib-ECMASCRIPT-6.0)中定义的`Error`子类列表，它们遵循该规范第19.5.6节中的`NativeError`模式。作假设如下：
+
+- [Something]和 %something% 的语法使用遵循[ECMASCRIPT-6.0](http://w3c.github.io/webrtc-pc/#bib-ECMASCRIPT-6.0)。
+- ECMAScript标准内置对象（[ECMASCRIPT-6.0]，第17节）的规则在本节中有效。
+- 新的内部对象`%RTCError%`和`%RTCErrorPrototype%`已被包含在（[ECMASCRIPT-6.0]，表7）和所有引用部分中，例如 （[ECMASCRIPT-6.0]，第8.2.2节），因此它们可用且行为正确。
+
+### 11.1 ECMAScript 6术语
+
+本节中使用的以下术语在[ECMASCRIPT-6.0]中定义。
+
+|    Term/Notation    |    Section in [ECMASCRIPT-6.0]    |
+|  :================: |  :=============================:  |
+|       Type(X)	      |               6                   |
+|   intrinsic object	|            6.1.7.4                |
+|    [[ErrorData]]	  |             19.5.1                |
+|    internal slot	  |            6.1.7.2                |  
+|      NewTarget	    |  various uses, but no definition  |
+| active function object |	         8.3                  | 
+| OrdinaryCreateFromConstructor() |	9.1.14                |
+|   ReturnIfAbrupt()  |           6.2.2.4                 |
+|       Assert	      |              5.2                  |
+|       String	      |  4.3.17-19, depending on context  |
+|  PropertyDescriptor	|             6.2.4                 |
+|     [[Value]]	      |            6.1.7.1                |
+|    [[Writable]]	    |            6.1.7.1                |
+|    [[Enumerable]]	  |            6.1.7.1                |
+|   [[Configurable]]	|            6.1.7.1                |
+| DefinePropertyOrThrow()	|         7.3.7                 |
+|   abrupt completion	|             6.2.2                 |
+|      ToString()	    |             7.1.12                |
+|     [[Prototype]]	  |              9.1                  |
+|       %Error%	      |             19.5.1                |
+|        Error	      |              19.5                 |
+|   %ErrorPrototype%	|             19.5.3                |
+| Object.prototype.toString	|      19.1.3.6               |
+
+### 11.2 RTCError对象
+
+#### 11.2.1 RTCError构造函数
+
+RTCError构造函数是`%RTCError%`内部对象。当`RTCError`作为函数而不是构造函数被调用时，它会创建并初始化一个新的`RTCError`对象。将对象作为函数调用等通于调用具有相同参数的构造函数。因此，函数调用`RTCError()...)`等效于具有相同参数的对象创建表达式`new RTCError(...)`。
+`RTCError`构造函数被设计为可继承。它可以被用作类定义中`extends`子句的值。计划继承指定`RTCError`行为的子类构造函数必须包含对`RTCError`构造函数的`super`父类调用，以使用[ErrorData]内部槽创建并初始化子类实例。
+
+#### 11.2.1.1 `RTCErrorDetailType`枚举
+
+```webidl
+enum RTCErrorDetailType {
+  "data-channel-failure",
+  "dtls-failure",
+  "fingerprint-failure",
+  "idp-bad-script-failure",
+  "idp-execution-failure",
+  "idp-load-failure",
+  "idp-need-login",
+  "idp-timeout",
+  "idp-tls-failure",
+  "idp-token-expired",
+  "idp-token-invalid",
+  "sctp-failure",
+  "sdp-syntax-error",
+  "hardware-encoder-not-available",
+  "hardware-encoder-error"
+};
+```
+
+**枚举值描述：**
+
+- data-channel-failure：数据通道已失败。
+- dtls-failure：DTLS协商失败或连接因为某个严重错误被终止了。`message`包含了与错误性质有关的信息。如果收到严重的DTLS警报，则`receivedAlert`属性将被设为收到的DTLS警报值。如果发送了致命的DTLS警报，则`sentAlert`属性将被设为发送的DTLS警报值。
+- fingerprint-failure：`RTCDtlsTransport`的远程证书与SDP中提供的所有指纹都不匹配。如果远程对端无法将本地证书与提供的指纹匹配，不会生成此错误。相反，可能会从远程对等方接收到`"bad_certificate"`（42）DTLS警报，从而导致`"dtls-failure"`。
+- idp-bad-script-failure：从身份提供程序加载的脚本不是有效的JavaScript代码，或没有实现正确的接口。
+- idp-execution-failure：身份提供程序抛出一个异常或返回了一个被拒绝的promise。
+- idp-load-failure：加载IDP URI失败。`httpRequestStatusCode`属性被设为响应中的HTTP状态码。
+- idp-need-login：身份提供程序需要用户登陆。`idpLoginUrl`属性被设为用于登录的URL。
+- idp-timeout：IDP定时器已过期。
+- idp-tls-failure：用于IDP HTTPS连接的TLS证书不可信。
+- idp-token-expired：IDP令牌已过期。
+- idp-token-invalid：IDP令牌非法。
+- sctp-failure：SCTP协商失败或连接因为某个严重错误被终止了。`sctpCauseCode`属性被设为SCTP错误码。
+- sdp-syntax-error：SDP语法非法。`sdpLineNumber`属性被设为SDP中检测出语法错误的行号。
+- hardware-encoder-not-available：请求操作所需的硬件编码器资源不可用。
+- hardware-encoder-error：硬件编码器不支持提供的参数。
+
+#### 11.2.1.2 RTCError(errorDetail, message)
+
+当`RTCError`函数被 *errorDetail* 和 *message* 参数调用时，以下步骤会被采取：
+
+1. 若NewTarget **未定义** 时，设 *newTarget* 为活跃函数对象，否则为NewTarget。
+2. 设 *O* 为`OrdinaryCreateFromConstructor(newTarget, "%RTCErrorPrototype%", «[ErrorData]»)`。
+3. 
