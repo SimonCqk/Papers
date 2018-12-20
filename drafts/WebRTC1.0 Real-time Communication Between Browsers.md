@@ -3619,31 +3619,31 @@ if (sender.dtmf.canInsertDTMF) {
 
 本节中使用的以下术语在[ECMASCRIPT-6.0]中定义。
 
-|    Term/Notation    |    Section in [ECMASCRIPT-6.0]    |
-|  :================: |  :=============================:  |
-|       Type(X)	      |               6                   |
-|   intrinsic object	|            6.1.7.4                |
-|    [[ErrorData]]	  |             19.5.1                |
-|    internal slot	  |            6.1.7.2                |  
-|      NewTarget	    |  various uses, but no definition  |
-| active function object |	         8.3                  | 
-| OrdinaryCreateFromConstructor() |	9.1.14                |
-|   ReturnIfAbrupt()  |           6.2.2.4                 |
-|       Assert	      |              5.2                  |
-|       String	      |  4.3.17-19, depending on context  |
-|  PropertyDescriptor	|             6.2.4                 |
-|     [[Value]]	      |            6.1.7.1                |
-|    [[Writable]]	    |            6.1.7.1                |
-|    [[Enumerable]]	  |            6.1.7.1                |
-|   [[Configurable]]	|            6.1.7.1                |
-| DefinePropertyOrThrow()	|         7.3.7                 |
-|   abrupt completion	|             6.2.2                 |
-|      ToString()	    |             7.1.12                |
-|     [[Prototype]]	  |              9.1                  |
-|       %Error%	      |             19.5.1                |
-|        Error	      |              19.5                 |
-|   %ErrorPrototype%	|             19.5.3                |
-| Object.prototype.toString	|      19.1.3.6               |
+|         Term/Notation           |    Section in [ECMASCRIPT-6.0]    |
+|  :----------------------------: |  :-----------------------------:  |
+|             Type(X)	            |               6                   |
+|         intrinsic object      	|            6.1.7.4                |
+|          [[ErrorData]]	        |             19.5.1                |
+|          internal slot	        |            6.1.7.2                |
+|            NewTarget	          |  various uses, but no definition  |
+|       active function object    |	             8.3                  |
+| OrdinaryCreateFromConstructor() |	            9.1.14                |
+|         ReturnIfAbrupt()        |             6.2.2.4               |
+|             Assert	            |               5.2                 |
+|             String	            |  4.3.17-19, depending on context  |
+|        PropertyDescriptor	      |             6.2.4                 |
+|           [[Value]]	            |            6.1.7.1                |
+|          [[Writable]]	          |            6.1.7.1                |
+|          [[Enumerable]]	        |            6.1.7.1                |
+|         [[Configurable]]	      |            6.1.7.1                |
+|      DefinePropertyOrThrow()  	|             7.3.7                 |
+|         abrupt completion	      |             6.2.2                 |
+|            ToString()	          |             7.1.12                |
+|           [[Prototype]]	        |              9.1                  |
+|             %Error%	            |             19.5.1                |
+|              Error	            |              19.5                 |
+|         %ErrorPrototype%      	|             19.5.3                |
+|    Object.prototype.toString	  |            19.1.3.6               |
 
 ### 11.2 RTCError对象
 
