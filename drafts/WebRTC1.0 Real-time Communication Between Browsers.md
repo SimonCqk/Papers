@@ -358,9 +358,9 @@ enum RTCIceConnectionState {
 一个`RTCPeerConnection`对象持有 **信令状态，连接状态，ICE收集状态和ICE连接状态** 四个状态。它们在对象创建时被初始化。
 `RTCPeerConnection`的ICE协议实现部分用 **ICE agent** 来表示。`RTCPeerConnection`中与[ICE Agent](http://w3c.github.io/webrtc-pc/#dfn-ice-agent)交互的方法被分别命名为：` addIceCandidate, setConfiguration, setLocalDescription, setRemoteDescription和close`。与这些交互相关的小节都被记录在[JSEP](http://w3c.github.io/webrtc-pc/#bib-JSEP)文档中。ICE Agent同样向用户代理指示了代表其内部的`RTCIceTransport`状态何时发生变化，这在[5.6 RTCIceTransport Interface](http://w3c.github.io/webrtc-pc/#rtcicetransport)。本节中列举的任务源即网络任务源[networking task source](https://www.w3.org/TR/html51/webappapis.html#networking-task-source)
 
-#### *4.4.1.1 构造器*
+#### *4.4.1.1 构造函数*
 
-当`RTCPeerConnection`的构造器被调用了，用户代理 **必须** 按照以下步骤运行：
+当`RTCPeerConnection`的构造函数被调用了，用户代理 **必须** 按照以下步骤运行：
 
 1. 如果以下任何一个步骤出现了未知错误，都会抛出`UnkownError`错误，并在"message"域设置相应的错误描述。
 2. *connection*应是最新创建的`RTCPeerConnection`对象。
@@ -604,7 +604,7 @@ interface RTCPeerConnection : EventTarget {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
 - **RTCPeerConnection** ：参阅[RTCPeerConnection构造算法](https://www.w3.org/TR/webrtc/#dom-peerconnection)。
 
@@ -909,9 +909,9 @@ interface RTCSessionDescription {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
-- **RTCSessionDescription** ：`RTCSessionDescription()`构造器接收一个字典参数， *descriptionInitDict* ，其内容被用来初始化一个新`RTCSessionDescription`对象。本构造器已被弃用，它的存在只是出于后向兼容性的考虑。
+- **RTCSessionDescription** ：`RTCSessionDescription()`构造函数接收一个字典参数， *descriptionInitDict* ，其内容被用来初始化一个新`RTCSessionDescription`对象。本构造函数已被弃用，它的存在只是出于后向兼容性的考虑。
 
 **属性：**
 
@@ -1005,9 +1005,9 @@ interface RTCIceCandidate {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
-- **RTCIceCandidate** ：`RTCIceCandidate()`构造器接收一个字典参数， *candidateInitDict* ，其内容被用来初始化新`RTCIceCandidate`对象。<br>  当它被调用时，运行以下步骤：
+- **RTCIceCandidate** ：`RTCIceCandidate()`构造函数接收一个字典参数， *candidateInitDict* ，其内容被用来初始化新`RTCIceCandidate`对象。<br>  当它被调用时，运行以下步骤：
     1. 如果 *candidateInitDict* 中的`sdpMid`和`sdpMLineIndex`字典成员都为`null`，抛出一个`TypeError`错误。
     2. 设 *iceCandidate* 即新创建的`RTCIceCandidate`对象。
     3. 将 *iceCandidate* 的以下属性置为`null`：` foundation, component, priority, address, protocol, port, type, tcpType, relatedAddress, relatedPort`。
@@ -1067,7 +1067,7 @@ dictionary RTCIceCandidateInit {
 
 #### *4.8.1.1 candidate-attribute语法*
 
-`candidate-attribute`语法被用于解析`RTCIceCandidate()`构造器中`candidateInitDict`变量的`candidate`成员。
+`candidate-attribute`语法被用于解析`RTCIceCandidate()`构造函数中`candidateInitDict`变量的`candidate`成员。
 `candidate-attribute`的主要语法被定义在[ICE]的15.1节。除此之外，浏览器必须支持[RFC6544](http://w3c.github.io/webrtc-pc/#bib-RFC6544)中定义的ICE TCP语法扩展。
 浏览器也可以支持RFC中定义的其他语法扩展。
 
@@ -1146,7 +1146,7 @@ interface RTCPeerConnectionIceEvent : Event {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
 - RTCPeerConnectionIceEvent
 
@@ -1182,7 +1182,7 @@ interface RTCPeerConnectionIceErrorEvent : Event {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
 - RTCPeerConnectionIceErrorEvent
 
@@ -2395,7 +2395,7 @@ interface RTCTrackEvent : Event {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
 - RTCTrackEvent
 
@@ -2752,7 +2752,7 @@ interface RTCDataChannelEvent : Event {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
 `RTCDataChannelEvent`
 
@@ -2880,7 +2880,7 @@ interface RTCDTMFToneChangeEvent : Event {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
 - RTCDTMFToneChangeEvent
 
@@ -2990,7 +2990,7 @@ interface RTCStatsEvent : Event {
 };
 ```
 
-**构造器：**
+**构造函数：**
 
 - RTCStatsEvent
 
@@ -3698,4 +3698,96 @@ enum RTCErrorDetailType {
 
 1. 若NewTarget **未定义** 时，设 *newTarget* 为活跃函数对象，否则为NewTarget。
 2. 设 *O* 为`OrdinaryCreateFromConstructor(newTarget, "%RTCErrorPrototype%", «[ErrorData]»)`。
-3. 
+3. 调用ReturnIfAbrupt(O)。
+4. 若 *errorDetail* 非 **未定义** ，则：
+    1. 设 *errorDetail* 为`PropertyDescriptor{[[Value]]: errorDetail, [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: false}.`
+    2. 设 *cStatus* 为`DefinePropertyOrThrow(O, "errorDetail", errorDetailDesc).`
+    3. 断言： *eStatus* 表示正常完成，过程没有被打断。
+5. 若 *message* 非 **未定义** ，则：
+    1. 设 *msg* 为`ToString(message).`
+    2. 设 *msgDesc* 为`PropertyDescriptor{[[Value]]: msg, [[Writable]]: true, [[Enumerable]]: false, [[Configurable]]: true}.`
+    3. 设 *mStatus* 为`DefinePropertyOrThrow(O, "message", msgDesc).`
+    4. 断言：*mStatus* 表示正常完成，过程没有被打断。
+6. 返回 *O* 。
+
+#### 11.2.2 RTCError构造函数的属性
+
+`RTCError`构造函数的[Prototype]槽的值是内部对象`％Error％`。
+除了`length`属性（其值为`1`），`RTCError`构造函数还有以下属性：
+
+##### 11.2.2.1 RTCError.prototype
+
+`RTCError.prototype`的初始值是`RTCError`原型对象。此属性具有属性`{[[Writable]]：false，[[Enumerable]]：false，[[Configurable]]：false}`。
+
+##### 11.2.3 RTCError原型对象属性
+
+`RTCError`原型对象是普通对象。它不是`Error`实例，也没有[ErrorData]内部槽。
+`RTCError`原型对象的[Prototype]内部槽的值是内部对象`％ErrorPrototype％`。
+
+##### 11.2.3.1 RTCError.prototype.constructor
+
+`RTCError`构造函数的原型的`constructor`属性的初始值是内部对象`％RTCError％`。
+
+##### 11.2.3.2 RTCError.prototype.errorDetail
+
+`RTCError`构造函数的原型的`errorDetail`属性的初始值是空字符串。
+
+##### 11.2.3.3 RTCError.prototype.sdpLineNumber
+
+`RTCError`构造函数的原型的`sdpLineNumber`属性的初始值是0。
+
+##### 11.2.3.4 RTCError.prototype.httpRequestStatusCode
+
+`RTCError`构造函数的原型的`httpRequestStatusCode`属性的初始值是0。
+
+##### 11.2.3.5 RTCError.prototype.sctpCauseCode
+
+`RTCError`构造函数的原型的`sctpCauseCode`属性的初始值是0。
+
+##### 11.2.3.6 RTCError.prototype.receivedAlert
+
+一个无符号整数，表示收到的DTLS警报值。`RTCError`构造函数的原型的`receivedAlert`属性的初始值为`null`。
+
+##### 11.2.3.7 RTCError.prototype.sentAlert
+
+一个无符号整数，表示发送的DTLS警报值。`RTCError`构造函数的原型的`sentAlert`属性的初始值为`null`。
+
+##### 11.2.3.8 RTCError.prototype.message
+
+`RTCError`构造函数的原型的`message`属性的初始值是空字符串。
+
+##### 11.2.3.9 RTCError.prototype.name
+
+`RTCError`构造函数的原型的`name`属性的初始值是`"RTCError"`。
+
+#### 11.2.4 RTCError实例的属性
+
+`RTCError`实例是从`RTCError`原型对象继承属性并具有[ErrorData]内部槽的普通对象，槽值 **未定义** 。[ErrorData]的唯一指定用途是通过`Object.prototype.toString`（[ECMASCRIPT-6.0](https://www.w3.org/TR/webrtc/#bib-ECMASCRIPT-6.0)，第19.1.3.6节）识别`Error`的实例或其各种子类。
+
+`RTCErrorEvent`接口为各种将`RTCError`作为事件抛出的场景而定义：
+
+```webidl
+[Exposed=Window,
+ Constructor(DOMString type, RTCErrorEventInit eventInitDict)]
+interface RTCErrorEvent : Event {
+    readonly attribute RTCError? error;
+};
+```
+
+**构造函数：**
+
+- RTCErrorEvent：构造一个新`RTCErrorEvent`。
+
+**属性：**
+
+- RTCError类型的`error`，只读，可空：描述触发事件的错误的描述（如果存在的话）。
+
+```webidl
+dictionary RTCErrorEventInit : EventInit {
+    RTCError? error = null;
+};
+```
+
+`RTCErrorEventInit`字典成员：
+
+- RTCError类型的`error`，可空，缺省值为`null`：与事件相关联的错误的描述（如果存在的话）。
