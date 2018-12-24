@@ -1031,7 +1031,7 @@ interface RTCIceCandidate {
 - DOMString类型的`foundation`，只读，可空：允许ICE关联出现在多个`RTCIceTransport`上候选地址的唯一标识符。
 - RTCIceComponent类型的`component`，只读，可空：赋予候选地址的网络组件(`rtp`或`rtcp`)。这对应于`candidate-attribute`中的`component-id`字段，解码为`RTCIceComponent`中定义的字符串表示。
 - unsigned long类型的`priority`，只读，可空：赋予候选地址的优先级。
-- DOMString类型的`address`，只读，可空：候选地址的地址，可以是IPv4，IPv6，或全限定域名（FQDN）。它对应于`candidate-attribute`中的`connection-address`字段。<br>  注意：候选者中公开的地址通过ICE收集并对`RTCIceCandidate`实例中的应用程序可见，这可以揭示有关设备和用户的更多信息（例如位置，本地网络拓扑），而不是用户在未启用WebRTC的浏览器中期望信息。<br>  这些地址会一直对应用公开，并可能对沟通方公开，也可能未经用户同意就公开（例如，对于在数据通道中使用的或只接收媒体的对等连接）。<br>  这些地址也可被用于暂时或持久的跨源状态，因此对设备的指纹表面有利。（这是一个指纹向量。）<br>  通过设置`RTCConfiguration`的`iceTransportPolicy`成员强制ICE代理只报告中继候选地址，应用可暂时或永久地避免将地址暴露给沟通方。<br>  为了限制暴露给应用本身的地址，浏览器可以向它们的用户提供不同的策略而不是共享本地地址，这定义在[RTCWEB-IP-HANDLING](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-IP-HANDLING)。
+- DOMString类型的`address`，只读，可空：候选地址的地址，可以是IPv4，IPv6，或全限定域名（FQDN）。它对应于`candidate-attribute`中的`connection-address`字段。<br>  注意：候选者中公开的地址通过ICE收集并对`RTCIceCandidate`实例中的应用程序可见，这可以泄露有关设备和用户的更多信息（例如位置，本地网络拓扑），而不是用户在未启用WebRTC的浏览器中期望信息。<br>  这些地址会一直对应用公开，并可能对沟通方公开，也可能未经用户同意就公开（例如，对于在数据通道中使用的或只接收媒体的对等连接）。<br>  这些地址也可被用于暂时或持久的跨源状态，因此对设备的指纹表面有利。（这是一个指纹向量。）<br>  通过设置`RTCConfiguration`的`iceTransportPolicy`成员强制ICE代理只报告中继候选地址，应用可暂时或永久地避免将地址暴露给沟通方。<br>  为了限制暴露给应用本身的地址，浏览器可以向它们的用户提供不同的策略而不是共享本地地址，这定义在[RTCWEB-IP-HANDLING](http://w3c.github.io/webrtc-pc/#bib-RTCWEB-IP-HANDLING)。
 - RTCIceProtocal类型的`protocal`，只读，可空：候选地址的协议(`udp`或`tcp`)。对应于`candidate-attribute`中的`transport`字段。
 - unsigned short类型的`port`，只读，可空：候选地址的端口。
 - RTCIceCandidateType类型的`type`，只读，可控：候选地址的类型。对应于`candidate-attribute`中的`candidate-types`字段。
@@ -3792,27 +3792,83 @@ dictionary RTCErrorEventInit : EventInit {
 
 - RTCError类型的`error`，可空，缺省值为`null`：与事件相关联的错误的描述（如果存在的话）。
 
+
+## 12. 事件摘要
+
+以下事件在`RTCDataChannel`对象上触发。
+
+|     Event name      |     Interface     |     Fired when      |
+|  :---------------:  |  :-------------:  |  :---------------:  |
+|       open          |       Event       | 当`RTCDataChannel`对象的底层数据传输已建立（或重新建立） |
+|       message       |  MessageEvent[webmessaging](http://w3c.github.io/webrtc-pc/#bib-webmessaging)  | 消息已被成功接收 |
+|  bufferedamountlow  |       Event       | `RTCDataChannel`对象的`bufferedamount`从高于`bufferedAmountLowThreashold`减少到小于等于`bufferedAmountLowThreashold` |
+|       error         |   RTCErrorEvent   |  数据通道中发生了一个错误 |
+|       close         |       Event       | `RTCDataChannel`的底层数据传输已被关闭  |
+
+以下事件在`RTCPeerConnection`对象上触发。
+
+|     Event name      |     Interface     |     Fired when      |
+|  :---------------:  |  :-------------:  |  :---------------:  |
+|       track         |    RTCTrackEvent  |  已为特定的`RTCRtpReceiver`协商了新的传入媒体，并且该接收端的`track`已添加到所有与之关联的远程`MediaStream`中。  |
+|  negotiationneeded  |      Event        |  浏览器希望通知应用程序需要完成会话协商（即`createOffer`调用后跟`setLocalDescription`）。  |
+| signalingstatechange |     Event        |  信令状态已改变状态。状态的改变原因是调用了`setLocalDescription`或`setRemoteDescription`。 |
+| iceconnectionstatechange |    Event     |   `RTCPeerConnection`的ICE连接状态已改变。  |
+| icegatheringstatechange  |    Event     |   `RTCPeerConnection`的ICE收集状态已改变。  |
+| icecandidate        |  RTCPeerConnectionIceEvent  | 新的`RTCIceCandidate`已对脚本可见。 |
+| connectionstatechange |    Event      |    `RTCPeerConnection`的`connectionState`属性已改变。 |
+|  icecandidateerror  | RTCPeerConnectionIceErrorEvent |   在收集ICE候选项阶段发生错误  |
+|     datachannel     |  RTCDataChannelEvent |  为了响应对端创建通道的请求，新的`RTCDataChannel`被调度到脚本中。  |
+|   isolationchange   |      Event        |   当`MediaStreamTrack`上的`isolated`属性改变时，新的`Event`被调度到脚本中。  |
+|    stateended       |    RTCStatsEvent  |  为了响应一个或多个受监控对象被同时删除，新的`Event`被调度到脚本中。   |
+
+以下事件在`RTCDTMFSender`对象上触发：
+
+|     Event name      |     Interface     |     Fired when      |
+|  :---------------:  |  :-------------:  |  :---------------:  |
+|     tonechange      |  RTCDTMFToneChangeEvent |  `RTCDTMFSender`对象刚刚开始播放音调（返回`tone`属性）或刚刚结束播放`toneBuffer`中的音调（返回空的`tone`属性）。  |
+
+以下事件在`RTCIceTransport`对象上触发：
+
+|     Event name      |     Interface     |     Fired when      |
+|  :---------------:  |  :-------------:  |  :---------------:  |
+|     statechange     |       Event       |  `RTCIceTransport`状态改变。  |
+|  gatheringstatechange  |    Event       |  `RTCIceTransport`收集状态改变。  |
+| selectedcandidatepairchange |  Event    |  `RTCIceTransport`选中的候选项对改变。  |
+
+以下事件在`RTCDtlsTransport`对象上触发：
+
+|     Event name      |     Interface     |     Fired when      |
+|  :---------------:  |  :-------------:  |  :---------------:  |
+|     statechange     |       Event       |  `RTCDtlsTransport`状态改变。  |
+|   error   |    RTCErrorEvent       |  在`RTCDtlsTransport`上发生错误（"dtls-error"或"fingerprint-failure"）。  |
+
+以下事件在`RTCSctpTransport`对象上触发：
+
+|     Event name      |     Interface     |     Fired when      |
+|  :---------------:  |  :-------------:  |  :---------------:  |
+|     statechange     |       Event       |  `RTCSctpTransport`状态改变。  |
+
 ### 13. 隐私与安全考量
 
 本节并非规范;它没有指定新的行为，而是总结了规范其他部分已有的内容。WebRTC中使用的一般API和协议集的整体安全性考量在[RTCWEB-SECURITY-ARCH](https://www.w3.org/TR/webrtc/#bib-RTCWEB-SECURITY-ARCH)中有描述。
 
 ### 13.1 对同源策略的影响
 
-本文档拓展了能够在浏览器和其他设备（包括其他浏览器）之间建立实时，直接的通信Web平台。
+本文档拓展了能够在浏览器和其他设备（包括其他浏览器）之间建立实时的直接通信Web平台。
 这意味着数据和媒体可以在运行在不同浏览器中的应用程序之间共享，也可以在运行在同一浏览器中的应用程序和非浏览器的应用程序之间共享，这是Web模型中常见屏障的扩展，用于在具有不同来源的实体之间发送数据。
 WebRTC规范不提供用户提示或Chrome指示符进行通信;它假设一旦允许网页访问媒体数据，就可以自由地与其他实体共享该媒体。因此，可以在没有任何用户明确同意或参与的情况下进行数据视角的WebRTC数据通道对等交换，类似于服务器介导的交换（例如，通过WebSockets）可以在没有用户参与的情况下发生。
-`peerIdentity`机制从充当身份提供者的第三方服务器加载并执行JavaScript代码。该代码在单独的JavaScript域中执行，不会影响相同原始策略提供的防护。
+`peerIdentity`机制从充当身份提供者的第三方服务器加载并执行JavaScript代码。该代码在单独的JavaScript域中执行，不会影响相同原策略提供的防护。
 
-### 13.2 揭示IP地址
+### 13.2 泄露IP地址
 
-即使没有WebRTC，提供Web应用程序的Web服务器也将知道应用程序到达的公网IP地址。设置通信会向Web应用程序公开有关浏览器网络上下文的其他信息，并且可能包括浏览器用于WebRTC通信的一组（可能是私有的）IP地址。其中一些信息必须传递给相应方才能建立通信会话。
-揭示IP地址可能会泄漏位置和连接方式可能很敏感。根据网络环境，它还可以增加指纹表面并创建持久且跨源的用户无法轻易清除的状态。
-连接将始终显示建议用于与对应端通信的IP地址。应用程序可以通过一些方法限制这种情况，比如使用`RTCIceTransportPolicy`字典的设置选择不使用特定的地址，以及使用中继连接（例如TURN服务器）而不是参与者之间的直接连接。通常会假设TURN服务器的IP地址不是敏感信息。 这些选择可以例如由应用程序基于用户是否已经表示同意开始与另一方的媒体连接来做出。
-暂缓向应用程序暴露IP地址本身需要限制可用的IP地址，这将影响在端之间的最直接路径上进行通信的能力。浏览器应该根据用户所需的安全姿态，提供适当的控制来决定哪些IP地址可供应用程序使用。公开的地址的选择由本地策略控制（详见[RTCWEB-IP-HANDLING](https://www.w3.org/TR/webrtc/#bib-RTCWEB-IP-HANDLING)）。
+即使没有WebRTC，提供Web应用程序的Web服务器也知道应用程序将要到达的公网IP地址。设置通信会向Web应用程序公开有关浏览器网络上下文的其他信息，甚至可能包括浏览器用于WebRTC通信的一组（可能是私有的）IP地址。其中一些信息必须传递给相应方才能建立通信会话。
+泄露IP地址可能会泄漏位置和连接方式，这是很敏感的。根据网络环境，它还可以增加指纹表面并创建持久且跨源的用户无法轻易清除的状态。
+连接将始终显示建议用于与对应端通信的IP地址。应用程序可以通过一些方法限制这种情况，比如使用`RTCIceTransportPolicy`字典的设置选择避开一些特定地址，以及使用中继连接（例如TURN服务器）代替通信参与者之间的直接连接。通常我们假设TURN服务器的IP地址不是敏感信息。 这些选择可以由应用程序做出，例如基于用户是否已经表示同意开始与另一方进行媒体连接。
+暂缓向应用程序暴露IP地址本身需要限制可用的IP地址，这将影响端之间的最直接路径上进行通信的能力。浏览器应该根据用户的安全需求，提供适当的控制来决定哪些IP地址可供应用程序使用。本地策略控制公开哪些地址（详见[RTCWEB-IP-HANDLING](https://www.w3.org/TR/webrtc/#bib-RTCWEB-IP-HANDLING)）。
 
 ### 13.3 对本地网络的影响
 
-由于浏览器是在可信网络环境（防火墙内）中执行的活动平台，因此限制浏览器对本地网络上其他元素可以造成的损害非常重要，保护数据免受不受信任的参与者拦截和操纵修改非常重要。
+由于浏览器是在可信网络环境（防火墙内）中执行的活动平台，因此限制浏览器对本地网络上其他元素可以造成的损害非常重要，保护数据免受不受信任的参与者拦截，操纵和修改非常重要。
 缓解措施包括：
 
 - 用户代理将始终请求对端用户代理的许可使用ICE进行通信。这可以确保用户代理只能发送给您具有共享凭据的合作伙伴。
@@ -3824,7 +3880,7 @@ WebRTC规范不提供用户提示或Chrome指示符进行通信;它假设一旦�
 
 ### 13.4 通信保密性
 
-通信内容实际上不能向可以观测网络的对手隐藏，因此必须将其视为公开信息。
+通信内容实际上不能向具备观测网络能力的攻击方隐藏，因此必须将其视为公开信息。
 现有的`peerIdentity`机制为Javascript提供了请求相同javascript无法访问媒体的选项，但只能发送给某些其他实体。
 
 ### 13.5 WebRTC公开的持久性信息
@@ -3832,4 +3888,147 @@ WebRTC规范不提供用户提示或Chrome指示符进行通信;它假设一旦�
 如上所述，WebRTC API公开的IP地址列表可以用作持久的跨源状态。
 除IP地址外，WebRTC API还通过`RTCRtpSender.getCapabilities`和`RTCRtpReceiver.getCapabilities`方法公开有关底层媒体系统的信息，包括系统能够生成和使用的编解码器的详细且有序的信息。该信息的子集可在会话协商期间生成，公开和传输的SDP会话描述中表示。在大多数情况下，该信息在不同时间和不同源上都是持久的，并且增加了给定设备的指纹表面。
 如果设置了默认ICE服务器，则它们可由`RTCPeerConnection`实例上的`getDefaultIceServers`方法公开，并提供持久的跨时间和跨源信息，增加了给定浏览器的指纹表面。
-建立DTLS连接时，WebRTC API可以生成可由应用程序持久化的证书（例如，在IndexedDB中）。这些证书不在原数据库之间共享，但在原始数据库清除持久存储时被清除。
+建立DTLS连接时，WebRTC API可以生成可由应用程序持久化的证书（例如，在IndexedDB中）。这些证书不在原数据库之间共享，但在原始数据库清除持久存储时会被清除。
+
+## A. 致谢
+
+编辑们感谢工作组主席和团队联系人Harald Alvestrand，StefanHåkansson，Erik Lagerway和DominiqueHazaël-Massieux的支持。许多人提供了本规范中的大量文本，包括Martin Thomson，Harald Alvestrand，Justin Uberti，Eric Rescorla，Peter Thatcher，Jan-Ivar Bruaroey和Peter Saint-Andre。Dan Burnett感谢Voxeo和Aspect在本规范制定过程中给予的大力支持。
+RTCRtpSender和RTCRtpReceiver对象最初在[W3C ORTC CG](https://www.w3.org/community/ortc/)中定义，先已被此规范采用。
+
+## B. 参考文献
+
+### B.1 规范性参考文献
+
+[BUNDLE]
+Negotiating Media Multiplexing Using the Session Description Protocol (SDP). C. Holmberg; H. Alvestrand; C. Jennings. IETF. 31 August 2017. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation
+[DOM]
+DOM Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://dom.spec.whatwg.org/
+[ECMASCRIPT-6.0]
+ECMA-262 6th Edition, The ECMAScript 2015 Language Specification. Allen Wirfs-Brock. Ecma International. June 2015. Standard. URL: http://www.ecma-international.org/ecma-262/6.0/index.html
+[fetch]
+Fetch Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://fetch.spec.whatwg.org/
+[FILEAPI]
+File API. Marijn Kruisselbrink; Arun Ranganathan. W3C. 6 November 2018. W3C Working Draft. URL: https://www.w3.org/TR/FileAPI/
+[FIPS-180-4]
+FIPS PUB 180-4 Secure Hash Standard. U.S. Department of Commerce/National Institute of Standards and Technology. URL: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
+[GETUSERMEDIA]
+Media Capture and Streams. Daniel Burnett; Adam Bergkvist; Cullen Jennings; Anant Narayanan; Bernard Aboba. W3C. 3 October 2017. W3C Candidate Recommendation. URL: https://www.w3.org/TR/mediacapture-streams/
+[HIGHRES-TIME]
+High Resolution Time Level 2. Ilya Grigorik; James Simonsen; Jatinder Mann. W3C. 1 March 2018. W3C Candidate Recommendation. URL: https://www.w3.org/TR/hr-time-2/
+[HTML]
+HTML Standard. Anne van Kesteren; Domenic Denicola; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/
+[HTML51]
+HTML 5.1 2nd Edition. Steve Faulkner; Arron Eicholz; Travis Leithead; Alex Danilo. W3C. 3 October 2017. W3C Recommendation. URL: https://www.w3.org/TR/html51/
+[IANA-HASH-FUNCTION]
+Hash Function Textual Names. IANA. URL: https://www.iana.org/assignments/hash-function-text-names/hash-function-text-names.xml
+[ICE]
+Interactive Connectivity Establishment (ICE): A Protocol for Network Address Translator (NAT) Traversal for Offer/Answer Protocols. J. Rosenberg. IETF. April 2010. Proposed Standard. URL: https://tools.ietf.org/html/rfc5245
+[INFRA]
+Infra Standard. Anne van Kesteren; Domenic Denicola. WHATWG. Living Standard. URL: https://infra.spec.whatwg.org/
+[JSEP]
+Javascript Session Establishment Protocol. Justin Uberti; Cullen Jennings; Eric Rescorla. IETF. 10 October 2017. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-jsep/
+[RFC2119]
+Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF. March 1997. Best Current Practice. URL: https://tools.ietf.org/html/rfc2119
+[RFC3550]
+RTP: A Transport Protocol for Real-Time Applications. H. Schulzrinne; S. Casner; R. Frederick; V. Jacobson. IETF. July 2003. Internet Standard. URL: https://tools.ietf.org/html/rfc3550
+[RFC3986]
+Uniform Resource Identifier (URI): Generic Syntax. T. Berners-Lee; R. Fielding; L. Masinter. IETF. January 2005. Internet Standard. URL: https://tools.ietf.org/html/rfc3986
+[RFC4566]
+SDP: Session Description Protocol. M. Handley; V. Jacobson; C. Perkins. IETF. July 2006. Proposed Standard. URL: https://tools.ietf.org/html/rfc4566
+[RFC4572]
+Connection-Oriented Media Transport over the Transport Layer Security (TLS) Protocol in the Session Description Protocol (SDP). J. Lennox. IETF. July 2006. Proposed Standard. URL: https://tools.ietf.org/html/rfc4572
+[RFC5389]
+Session Traversal Utilities for NAT (STUN). J. Rosenberg; R. Mahy; P. Matthews; D. Wing. IETF. October 2008. Proposed Standard. URL: https://tools.ietf.org/html/rfc5389
+[RFC5761]
+Multiplexing RTP Data and Control Packets on a Single Port. C. Perkins; M. Westerlund. IETF. April 2010. Proposed Standard. URL: https://tools.ietf.org/html/rfc5761
+[RFC5888]
+The Session Description Protocol (SDP) Grouping Framework. G. Camarillo; H. Schulzrinne. IETF. June 2010. Proposed Standard. URL: https://tools.ietf.org/html/rfc5888
+[RFC6236]
+Negotiation of Generic Image Attributes in the Session Description Protocol (SDP). I. Johansson; K. Jung. IETF. May 2011. Proposed Standard. URL: https://tools.ietf.org/html/rfc6236
+[RFC6464]
+A Real-time Transport Protocol (RTP) Header Extension for Client-to-Mixer Audio Level Indication. J. Lennox, Ed.; E. Ivov; E. Marocco. IETF. December 2011. Proposed Standard. URL: https://tools.ietf.org/html/rfc6464
+[RFC6465]
+A Real-time Transport Protocol (RTP) Header Extension for Mixer-to-Client Audio Level Indication. E. Ivov, Ed.; E. Marocco, Ed.; J. Lennox. IETF. December 2011. Proposed Standard. URL: https://tools.ietf.org/html/rfc6465
+[RFC6544]
+TCP Candidates with Interactive Connectivity Establishment (ICE). J. Rosenberg; A. Keranen; B. B. Lowekamp; A. B. Roach. IETF. March 2012. Proposed Standard. URL: https://tools.ietf.org/html/rfc6544
+[RFC6749]
+The OAuth 2.0 Authorization Framework. D. Hardt, Ed.. IETF. October 2012. Proposed Standard. URL: https://tools.ietf.org/html/rfc6749
+[RFC7064]
+URI Scheme for the Session Traversal Utilities for NAT (STUN) Protocol. S. Nandakumar; G. Salgueiro; P. Jones; M. Petit-Huguenin. IETF. November 2013. Proposed Standard. URL: https://tools.ietf.org/html/rfc7064
+[RFC7065]
+Traversal Using Relays around NAT (TURN) Uniform Resource Identifiers. M. Petit-Huguenin; S. Nandakumar; G. Salgueiro; P. Jones. IETF. November 2013. Proposed Standard. URL: https://tools.ietf.org/html/rfc7065
+[RFC7515]
+JSON Web Signature (JWS). M. Jones; J. Bradley; N. Sakimura. IETF. May 2015. Proposed Standard. URL: https://tools.ietf.org/html/rfc7515
+[RFC7635]
+Session Traversal Utilities for NAT (STUN) Extension for Third-Party Authorization. T. Reddy; P. Patil; R. Ravindranath; J. Uberti. IETF. August 2015. Proposed Standard. URL: https://tools.ietf.org/html/rfc7635
+[RFC7656]
+A Taxonomy of Semantics and Mechanisms for Real-Time Transport Protocol (RTP) Sources. J. Lennox; K. Gross; S. Nandakumar; G. Salgueiro; B. Burman, Ed.. IETF. November 2015. Informational. URL: https://tools.ietf.org/html/rfc7656
+[RFC7675]
+Session Traversal Utilities for NAT (STUN) Usage for Consent Freshness. M. Perumal; D. Wing; R. Ravindranath; T. Reddy; M. Thomson. IETF. October 2015. Proposed Standard. URL: https://tools.ietf.org/html/rfc7675
+[RTCWEB-AUDIO]
+WebRTC Audio Codec and Processing Requirements. JM. Valin; C. Bran. IETF. May 2016. Proposed Standard. URL: https://tools.ietf.org/html/rfc7874
+[RTCWEB-DATA]
+RTCWeb Data Channels. R. Jesup; S. Loreto; M. Tuexen. IETF. 14 October 2015. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-data-channel
+[RTCWEB-DATA-PROTOCOL]
+RTCWeb Data Channel Protocol. R. Jesup; S. Loreto; M. Tuexen. IETF. 14 October 2015. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-data-protocol
+[RTCWEB-RTP]
+Web Real-Time Communication (WebRTC): Media Transport and Use of RTP. C. Perkins; M. Westerlund; J. Ott. IETF. 17 March 2016. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-rtp-usage
+[RTCWEB-TRANSPORT]
+Transports for RTCWEB. H. Alvestrand. IETF. 31 October 2016. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-transports
+[SCTP-SDP]
+Session Description Protocol (SDP) Offer/Answer Procedures For Stream Control Transmission Protocol (SCTP) over Datagram Transport Layer Security (DTLS) Transport. C. Holmberg; R. Shpount; S. Loreto; G. Camarillo. IETF. 20 March 2017. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-mmusic-sctp-sdp
+[SDP]
+An Offer/Answer Model with Session Description Protocol (SDP). J. Rosenberg; H. Schulzrinne. IETF. June 2002. Proposed Standard. URL: https://tools.ietf.org/html/rfc3264
+[STUN-BIS]
+Session Traversal Utilities for NAT (STUN). M. Petit-Huguenin; G. Salgueiro; J. Rosenberg; D. Wing; R. Mahy; P. Matthews. IETF. 16 February 2017. Internet Draft (work in progress). URL: https://tools.ietf.org/html/draft-ietf-tram-stunbis
+[TRICKLE-ICE]
+Trickle ICE: Incremental Provisioning of Candidates for the Interactive Connectivity Establishment (ICE) Protocol. E. Ivov; E. Rescorla; J. Uberti. IETF. 20 July 2015. Internet Draft (work in progress). URL: http://datatracker.ietf.org/doc/draft-ietf-mmusic-trickle-ice
+[TSVWG-RTCWEB-QOS]
+DSCP Packet Markings for WebRTC QoS. S. Dhesikan; C. Jennings; D. Druta; P. Jones; J. Polk. IETF. 22 August 2016. Internet Draft (work in progress). URL: https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos
+[WebCryptoAPI]
+Web Cryptography API. Mark Watson. W3C. 26 January 2017. W3C Recommendation. URL: https://www.w3.org/TR/WebCryptoAPI/
+[WEBIDL]
+Web IDL. Cameron McCormack; Boris Zbarsky; Tobie Langel. W3C. 15 December 2016. W3C Editor's Draft. URL: https://heycam.github.io/webidl/
+[WEBIDL-1]
+WebIDL Level 1. Cameron McCormack. W3C. 15 December 2016. W3C Recommendation. URL: https://www.w3.org/TR/2016/REC-WebIDL-1-20161215/
+[webmessaging]
+HTML5 Web Messaging. Ian Hickson. W3C. 19 May 2015. W3C Recommendation. URL: https://www.w3.org/TR/webmessaging/
+[WEBRTC-IDENTITY]
+Identity for WebRTC 1.0. Adam Bergkvist; Daniel Burnett; Cullen Jennings; Anant Narayanan; Bernard Aboba; Taylor Brandstetter. W3C. W3C Candidate Recommendation. URL: https://w3c.github.io/webrtc-identity/identity.html
+[WEBRTC-STATS]
+Identifiers for WebRTC's Statistics API. Harald Alvestrand; Varun Singh. W3C. 3 July 2018. W3C Candidate Recommendation. URL: https://www.w3.org/TR/webrtc-stats/
+[X509V3]
+ITU-T Recommendation X.509 version 3 (1997). "Information Technology - Open Systems Interconnection - The Directory Authentication Framework"  ISO/IEC 9594-8:1997. ITU.
+[X690]
+Recommendation X.690 — Information Technology — ASN.1 Encoding Rules — Specification of Basic Encoding Rules (BER), Canonical Encoding Rules (CER), and Distinguished Encoding Rules (DER). ITU. URL: https://www.itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf
+
+### B.2 非规范性参考文献
+
+[API-DESIGN-PRINCIPLES]
+API Design Principles. Domenic Denicola.29 December 2015. URL: https://w3ctag.github.io/design-principles/
+[IANA-RTP-2]
+RTP Payload Format media types. IANA. URL: https://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml#rtp-parameters-2
+[INDEXEDDB]
+Indexed Database API. Nikunj Mehta; Jonas Sicking; Eliot Graff; Andrei Popescu; Jeremy Orlow; Joshua Bell. W3C. 8 January 2015. W3C Recommendation. URL: https://www.w3.org/TR/IndexedDB/
+[OAUTH-POP-KEY-DISTRIBUTION]
+OAuth 2.0 Proof-of-Possession: Authorization Server to Client Key Distribution. J. Bradley; P. Hunt; M. Jones; H. Tschofenig. IETF. 5 March 2015. Internet Draft (work in progress). URL: https://datatracker.ietf.org/doc/draft-ietf-oauth-pop-key-distribution/
+[RFC3890]
+A Transport Independent Bandwidth Modifier for the Session Description Protocol (SDP). M. Westerlund. IETF. September 2004. Proposed Standard. URL: https://tools.ietf.org/html/rfc3890
+[RFC5285]
+A General Mechanism for RTP Header Extensions. D. Singer; H. Desineni. IETF. July 2008. Proposed Standard. URL: https://tools.ietf.org/html/rfc5285
+[RFC5506]
+Support for Reduced-Size Real-Time Transport Control Protocol (RTCP): Opportunities and Consequences. I. Johansson; M. Westerlund. IETF. April 2009. Proposed Standard. URL: https://tools.ietf.org/html/rfc5506
+[RTCWEB-IP-HANDLING]
+WebRTC IP Address Handling Recommendations. Guo-wei Shieh; Justin Uberti. IETF. 20 March 2016. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-ip-handling
+[RTCWEB-OVERVIEW]
+Overview: Real Time Protocols for Brower-based Applications. H. Alvestrand. IETF. 14 February 2014. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-overview
+[RTCWEB-SECURITY]
+Security Considerations for WebRTC. Eric Rescorla. IETF. 22 January 2014. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-security
+[RTCWEB-SECURITY-ARCH]
+WebRTC Security Architecture. Eric Rescorla. IETF. 10 December 2016. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-security-arch
+[STUN-PARAMETERS]
+STUN Error Codes. IETF. IANA. April 2011. IANA Parameter Assignment. URL: https://www.iana.org/assignments/stun-parameters/stun-parameters.xhtml#stun-parameters-6
+[WEBSOCKETS-API]
+The WebSocket API. Ian Hickson. W3C. 20 September 2012. W3C Candidate Recommendation. URL: https://www.w3.org/TR/websockets/
+[XMLHttpRequest]
+XMLHttpRequest Level 1. Anne van Kesteren; Julian Aubourg; Jungkee Song; Hallvord Steen et al. W3C. 6 October 2016. W3C Note. URL: https://www.w3.org/TR/XMLHttpRequest/
