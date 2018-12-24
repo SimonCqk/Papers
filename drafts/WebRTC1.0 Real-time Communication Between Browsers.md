@@ -3901,104 +3901,154 @@ RTCRtpSender和RTCRtpReceiver对象最初在[W3C ORTC CG](https://www.w3.org/com
 
 [BUNDLE]
 Negotiating Media Multiplexing Using the Session Description Protocol (SDP). C. Holmberg; H. Alvestrand; C. Jennings. IETF. 31 August 2017. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-mmusic-sdp-bundle-negotiation
+
 [DOM]
 DOM Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://dom.spec.whatwg.org/
+
 [ECMASCRIPT-6.0]
 ECMA-262 6th Edition, The ECMAScript 2015 Language Specification. Allen Wirfs-Brock. Ecma International. June 2015. Standard. URL: http://www.ecma-international.org/ecma-262/6.0/index.html
+
 [fetch]
 Fetch Standard. Anne van Kesteren. WHATWG. Living Standard. URL: https://fetch.spec.whatwg.org/
+
 [FILEAPI]
 File API. Marijn Kruisselbrink; Arun Ranganathan. W3C. 6 November 2018. W3C Working Draft. URL: https://www.w3.org/TR/FileAPI/
+
 [FIPS-180-4]
 FIPS PUB 180-4 Secure Hash Standard. U.S. Department of Commerce/National Institute of Standards and Technology. URL: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf
+
 [GETUSERMEDIA]
 Media Capture and Streams. Daniel Burnett; Adam Bergkvist; Cullen Jennings; Anant Narayanan; Bernard Aboba. W3C. 3 October 2017. W3C Candidate Recommendation. URL: https://www.w3.org/TR/mediacapture-streams/
+
 [HIGHRES-TIME]
 High Resolution Time Level 2. Ilya Grigorik; James Simonsen; Jatinder Mann. W3C. 1 March 2018. W3C Candidate Recommendation. URL: https://www.w3.org/TR/hr-time-2/
+
 [HTML]
 HTML Standard. Anne van Kesteren; Domenic Denicola; Ian Hickson; Philip Jägenstedt; Simon Pieters. WHATWG. Living Standard. URL: https://html.spec.whatwg.org/multipage/
+
 [HTML51]
 HTML 5.1 2nd Edition. Steve Faulkner; Arron Eicholz; Travis Leithead; Alex Danilo. W3C. 3 October 2017. W3C Recommendation. URL: https://www.w3.org/TR/html51/
+
 [IANA-HASH-FUNCTION]
 Hash Function Textual Names. IANA. URL: https://www.iana.org/assignments/hash-function-text-names/hash-function-text-names.xml
+
 [ICE]
 Interactive Connectivity Establishment (ICE): A Protocol for Network Address Translator (NAT) Traversal for Offer/Answer Protocols. J. Rosenberg. IETF. April 2010. Proposed Standard. URL: https://tools.ietf.org/html/rfc5245
+
 [INFRA]
 Infra Standard. Anne van Kesteren; Domenic Denicola. WHATWG. Living Standard. URL: https://infra.spec.whatwg.org/
+
 [JSEP]
 Javascript Session Establishment Protocol. Justin Uberti; Cullen Jennings; Eric Rescorla. IETF. 10 October 2017. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-jsep/
+
 [RFC2119]
 Key words for use in RFCs to Indicate Requirement Levels. S. Bradner. IETF. March 1997. Best Current Practice. URL: https://tools.ietf.org/html/rfc2119
+
 [RFC3550]
 RTP: A Transport Protocol for Real-Time Applications. H. Schulzrinne; S. Casner; R. Frederick; V. Jacobson. IETF. July 2003. Internet Standard. URL: https://tools.ietf.org/html/rfc3550
+
 [RFC3986]
 Uniform Resource Identifier (URI): Generic Syntax. T. Berners-Lee; R. Fielding; L. Masinter. IETF. January 2005. Internet Standard. URL: https://tools.ietf.org/html/rfc3986
+
 [RFC4566]
 SDP: Session Description Protocol. M. Handley; V. Jacobson; C. Perkins. IETF. July 2006. Proposed Standard. URL: https://tools.ietf.org/html/rfc4566
+
 [RFC4572]
 Connection-Oriented Media Transport over the Transport Layer Security (TLS) Protocol in the Session Description Protocol (SDP). J. Lennox. IETF. July 2006. Proposed Standard. URL: https://tools.ietf.org/html/rfc4572
+
 [RFC5389]
 Session Traversal Utilities for NAT (STUN). J. Rosenberg; R. Mahy; P. Matthews; D. Wing. IETF. October 2008. Proposed Standard. URL: https://tools.ietf.org/html/rfc5389
+
 [RFC5761]
 Multiplexing RTP Data and Control Packets on a Single Port. C. Perkins; M. Westerlund. IETF. April 2010. Proposed Standard. URL: https://tools.ietf.org/html/rfc5761
+
 [RFC5888]
 The Session Description Protocol (SDP) Grouping Framework. G. Camarillo; H. Schulzrinne. IETF. June 2010. Proposed Standard. URL: https://tools.ietf.org/html/rfc5888
+
 [RFC6236]
 Negotiation of Generic Image Attributes in the Session Description Protocol (SDP). I. Johansson; K. Jung. IETF. May 2011. Proposed Standard. URL: https://tools.ietf.org/html/rfc6236
+
 [RFC6464]
 A Real-time Transport Protocol (RTP) Header Extension for Client-to-Mixer Audio Level Indication. J. Lennox, Ed.; E. Ivov; E. Marocco. IETF. December 2011. Proposed Standard. URL: https://tools.ietf.org/html/rfc6464
+
 [RFC6465]
 A Real-time Transport Protocol (RTP) Header Extension for Mixer-to-Client Audio Level Indication. E. Ivov, Ed.; E. Marocco, Ed.; J. Lennox. IETF. December 2011. Proposed Standard. URL: https://tools.ietf.org/html/rfc6465
+
 [RFC6544]
 TCP Candidates with Interactive Connectivity Establishment (ICE). J. Rosenberg; A. Keranen; B. B. Lowekamp; A. B. Roach. IETF. March 2012. Proposed Standard. URL: https://tools.ietf.org/html/rfc6544
+
 [RFC6749]
 The OAuth 2.0 Authorization Framework. D. Hardt, Ed.. IETF. October 2012. Proposed Standard. URL: https://tools.ietf.org/html/rfc6749
+
 [RFC7064]
 URI Scheme for the Session Traversal Utilities for NAT (STUN) Protocol. S. Nandakumar; G. Salgueiro; P. Jones; M. Petit-Huguenin. IETF. November 2013. Proposed Standard. URL: https://tools.ietf.org/html/rfc7064
+
 [RFC7065]
 Traversal Using Relays around NAT (TURN) Uniform Resource Identifiers. M. Petit-Huguenin; S. Nandakumar; G. Salgueiro; P. Jones. IETF. November 2013. Proposed Standard. URL: https://tools.ietf.org/html/rfc7065
+
 [RFC7515]
 JSON Web Signature (JWS). M. Jones; J. Bradley; N. Sakimura. IETF. May 2015. Proposed Standard. URL: https://tools.ietf.org/html/rfc7515
+
 [RFC7635]
 Session Traversal Utilities for NAT (STUN) Extension for Third-Party Authorization. T. Reddy; P. Patil; R. Ravindranath; J. Uberti. IETF. August 2015. Proposed Standard. URL: https://tools.ietf.org/html/rfc7635
+
 [RFC7656]
 A Taxonomy of Semantics and Mechanisms for Real-Time Transport Protocol (RTP) Sources. J. Lennox; K. Gross; S. Nandakumar; G. Salgueiro; B. Burman, Ed.. IETF. November 2015. Informational. URL: https://tools.ietf.org/html/rfc7656
+
 [RFC7675]
 Session Traversal Utilities for NAT (STUN) Usage for Consent Freshness. M. Perumal; D. Wing; R. Ravindranath; T. Reddy; M. Thomson. IETF. October 2015. Proposed Standard. URL: https://tools.ietf.org/html/rfc7675
+
 [RTCWEB-AUDIO]
 WebRTC Audio Codec and Processing Requirements. JM. Valin; C. Bran. IETF. May 2016. Proposed Standard. URL: https://tools.ietf.org/html/rfc7874
+
 [RTCWEB-DATA]
 RTCWeb Data Channels. R. Jesup; S. Loreto; M. Tuexen. IETF. 14 October 2015. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-data-channel
+
 [RTCWEB-DATA-PROTOCOL]
 RTCWeb Data Channel Protocol. R. Jesup; S. Loreto; M. Tuexen. IETF. 14 October 2015. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-data-protocol
+
 [RTCWEB-RTP]
 Web Real-Time Communication (WebRTC): Media Transport and Use of RTP. C. Perkins; M. Westerlund; J. Ott. IETF. 17 March 2016. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-rtp-usage
+
 [RTCWEB-TRANSPORT]
 Transports for RTCWEB. H. Alvestrand. IETF. 31 October 2016. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-transports
+
 [SCTP-SDP]
 Session Description Protocol (SDP) Offer/Answer Procedures For Stream Control Transmission Protocol (SCTP) over Datagram Transport Layer Security (DTLS) Transport. C. Holmberg; R. Shpount; S. Loreto; G. Camarillo. IETF. 20 March 2017. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-mmusic-sctp-sdp
+
 [SDP]
 An Offer/Answer Model with Session Description Protocol (SDP). J. Rosenberg; H. Schulzrinne. IETF. June 2002. Proposed Standard. URL: https://tools.ietf.org/html/rfc3264
+
 [STUN-BIS]
 Session Traversal Utilities for NAT (STUN). M. Petit-Huguenin; G. Salgueiro; J. Rosenberg; D. Wing; R. Mahy; P. Matthews. IETF. 16 February 2017. Internet Draft (work in progress). URL: https://tools.ietf.org/html/draft-ietf-tram-stunbis
+
 [TRICKLE-ICE]
 Trickle ICE: Incremental Provisioning of Candidates for the Interactive Connectivity Establishment (ICE) Protocol. E. Ivov; E. Rescorla; J. Uberti. IETF. 20 July 2015. Internet Draft (work in progress). URL: http://datatracker.ietf.org/doc/draft-ietf-mmusic-trickle-ice
+
 [TSVWG-RTCWEB-QOS]
 DSCP Packet Markings for WebRTC QoS. S. Dhesikan; C. Jennings; D. Druta; P. Jones; J. Polk. IETF. 22 August 2016. Internet Draft (work in progress). URL: https://tools.ietf.org/html/draft-ietf-tsvwg-rtcweb-qos
+
 [WebCryptoAPI]
 Web Cryptography API. Mark Watson. W3C. 26 January 2017. W3C Recommendation. URL: https://www.w3.org/TR/WebCryptoAPI/
+
 [WEBIDL]
 Web IDL. Cameron McCormack; Boris Zbarsky; Tobie Langel. W3C. 15 December 2016. W3C Editor's Draft. URL: https://heycam.github.io/webidl/
+
 [WEBIDL-1]
 WebIDL Level 1. Cameron McCormack. W3C. 15 December 2016. W3C Recommendation. URL: https://www.w3.org/TR/2016/REC-WebIDL-1-20161215/
+
 [webmessaging]
 HTML5 Web Messaging. Ian Hickson. W3C. 19 May 2015. W3C Recommendation. URL: https://www.w3.org/TR/webmessaging/
+
 [WEBRTC-IDENTITY]
 Identity for WebRTC 1.0. Adam Bergkvist; Daniel Burnett; Cullen Jennings; Anant Narayanan; Bernard Aboba; Taylor Brandstetter. W3C. W3C Candidate Recommendation. URL: https://w3c.github.io/webrtc-identity/identity.html
+
 [WEBRTC-STATS]
 Identifiers for WebRTC's Statistics API. Harald Alvestrand; Varun Singh. W3C. 3 July 2018. W3C Candidate Recommendation. URL: https://www.w3.org/TR/webrtc-stats/
+
 [X509V3]
 ITU-T Recommendation X.509 version 3 (1997). "Information Technology - Open Systems Interconnection - The Directory Authentication Framework"  ISO/IEC 9594-8:1997. ITU.
+
 [X690]
 Recommendation X.690 — Information Technology — ASN.1 Encoding Rules — Specification of Basic Encoding Rules (BER), Canonical Encoding Rules (CER), and Distinguished Encoding Rules (DER). ITU. URL: https://www.itu.int/ITU-T/studygroups/com17/languages/X.690-0207.pdf
 
@@ -4006,29 +4056,42 @@ Recommendation X.690 — Information Technology — ASN.1 Encoding Rules — Spe
 
 [API-DESIGN-PRINCIPLES]
 API Design Principles. Domenic Denicola.29 December 2015. URL: https://w3ctag.github.io/design-principles/
+
 [IANA-RTP-2]
 RTP Payload Format media types. IANA. URL: https://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml#rtp-parameters-2
+
 [INDEXEDDB]
 Indexed Database API. Nikunj Mehta; Jonas Sicking; Eliot Graff; Andrei Popescu; Jeremy Orlow; Joshua Bell. W3C. 8 January 2015. W3C Recommendation. URL: https://www.w3.org/TR/IndexedDB/
+
 [OAUTH-POP-KEY-DISTRIBUTION]
 OAuth 2.0 Proof-of-Possession: Authorization Server to Client Key Distribution. J. Bradley; P. Hunt; M. Jones; H. Tschofenig. IETF. 5 March 2015. Internet Draft (work in progress). URL: https://datatracker.ietf.org/doc/draft-ietf-oauth-pop-key-distribution/
+
 [RFC3890]
 A Transport Independent Bandwidth Modifier for the Session Description Protocol (SDP). M. Westerlund. IETF. September 2004. Proposed Standard. URL: https://tools.ietf.org/html/rfc3890
+
 [RFC5285]
 A General Mechanism for RTP Header Extensions. D. Singer; H. Desineni. IETF. July 2008. Proposed Standard. URL: https://tools.ietf.org/html/rfc5285
+
 [RFC5506]
 Support for Reduced-Size Real-Time Transport Control Protocol (RTCP): Opportunities and Consequences. I. Johansson; M. Westerlund. IETF. April 2009. Proposed Standard. URL: https://tools.ietf.org/html/rfc5506
+
 [RTCWEB-IP-HANDLING]
 WebRTC IP Address Handling Recommendations. Guo-wei Shieh; Justin Uberti. IETF. 20 March 2016. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-ip-handling
+
 [RTCWEB-OVERVIEW]
 Overview: Real Time Protocols for Brower-based Applications. H. Alvestrand. IETF. 14 February 2014. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-overview
+
 [RTCWEB-SECURITY]
 Security Considerations for WebRTC. Eric Rescorla. IETF. 22 January 2014. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-security
+
 [RTCWEB-SECURITY-ARCH]
 WebRTC Security Architecture. Eric Rescorla. IETF. 10 December 2016. Active Internet-Draft. URL: https://tools.ietf.org/html/draft-ietf-rtcweb-security-arch
+
 [STUN-PARAMETERS]
 STUN Error Codes. IETF. IANA. April 2011. IANA Parameter Assignment. URL: https://www.iana.org/assignments/stun-parameters/stun-parameters.xhtml#stun-parameters-6
+
 [WEBSOCKETS-API]
 The WebSocket API. Ian Hickson. W3C. 20 September 2012. W3C Candidate Recommendation. URL: https://www.w3.org/TR/websockets/
+
 [XMLHttpRequest]
 XMLHttpRequest Level 1. Anne van Kesteren; Julian Aubourg; Jungkee Song; Hallvord Steen et al. W3C. 6 October 2016. W3C Note. URL: https://www.w3.org/TR/XMLHttpRequest/
