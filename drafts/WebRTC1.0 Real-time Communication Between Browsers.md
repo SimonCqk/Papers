@@ -315,10 +315,10 @@ enum RTCPeerConnectionState {
 枚举类型描述：
 
 - new：所有`RTCIceTransport`和`RTCDtlsTranport`都在"new"状态，且没有任何一个处于"connecting"，"checking"，"failed"，"disconnected"状态，也可以是所有传输都处于"closed"状态，或当前还没有传输。
-- connecting：所有`RTCIceTransport`或`RTCDtlsTranport`都在"connecting"或"checking"状态，且没有一个处于"failed"状态。
+- connecting：所有`RTCIceTransport`和`RTCDtlsTranport`都在"connecting"或"checking"状态，且没有一个处于"failed"状态。
 - connected：所有`RTCIceTransport`和`RTCDtlsTranport`都在"connected"，"completed"或"closed"状态，且其中至少有一个处于"connected"或"completed"状态。
-- disconnected：所有`RTCIceTransport`或`RTCDtlsTranport`都在"disconnected"状态，且没有一个处于"failed"，"connecting"或"checking"状态。
-- failed：所有`RTCIceTransport`或`RTCDtlsTranport`都在"failed"状态。
+- disconnected：所有`RTCIceTransport`和`RTCDtlsTranport`都在"disconnected"状态，且没有一个处于"failed"，"connecting"或"checking"状态。
+- failed：所有`RTCIceTransport`和`RTCDtlsTranport`都在"failed"状态。
 - closed：`RTCPeerConnection`对象的[IsClosed]槽为值true。
 
 #### 4.3.4 `RTCIceConnectionState`枚举值
@@ -498,7 +498,7 @@ enum RTCIceConnectionState {
                     2. 将 *transceiver* 的[CurrentDirection]槽和[FiredDirection]槽设为 *direction* 。
             8. 如果 *description* 被设为远程描述，则运行以下步骤：
                 1. 为 *description* 中的每个媒体描述执行：
-                    1. 设 *direction* 为代表媒体描述方向的`RTCRtpTransceiverDirection`值，但在对等连接的角度看来，发送和接受的方向是相反的。
+                    1. 设 *direction* 为代表媒体流收发方向的`RTCRtpTransceiverDirection`值，但在对等连接的角度看来，发送和接受的方向是相反的。
                     2. 如[JESP 5.10](https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-24#section-5.10)所述，尝试找到现有的`RTCRtpTransceiver`对象，即 *transceiver* ，以代表媒体描述。
                     3. 如果没有找到合适的收发器（ *transceiver* 为空），则运行以下步骤：
                         1. 从媒体描述创建`RTCRtpSender`对象 *sender* 。
