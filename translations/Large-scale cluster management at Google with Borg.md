@@ -163,7 +163,12 @@ Jobs有部署的约束，且需要处理少见的负载突刺，我们的机器�
 
 ### 5.4 细粒度的资源申请（Fine-grained resouce requests）
 
+![figure 8](https://github.com/SimonCqk/Papers/blob/master/images/borg/f7.jpg)
+
 `Borg`的用户以`毫核心`为单位申请CPU资源，以字节为单位申请硬盘空间和内存（一个核是一个处理器超线程，为不同类型机器的性能进行了标准化）。图8显示用户充分利用了细粒度：对请求的内存量和CPU核数没有明显的“偏好点”，资源之间也没有明显的相关性。这些分布和[68]中展示的十分相似，除了我们在90%分位数上的内存请求稍微大一些。
+
+![figure 9](https://github.com/SimonCqk/Papers/blob/master/images/borg/f7.jpg)
+
 在`Iaas（infrastructure-as-a-service）`中普遍提供的固定尺寸的容器或虚拟机并没有很好地符合我们的需求。为了说明这一点，我们对`prod jobs`和`Alloc`的CPU核数和内存申请向上取整，取最接近的2的幂次数，最低为0.5核/1G RAM。图9显示这样的做法通常需要30-50%更多的资源。上界来自于即使将压缩前的原cell的尺寸扩大四倍仍无法满足资源需求的大型tasks，只得为它们分配一整台机器；下界来自于允许tasks进入挂起等待状态（这比[37]中将近100%的额外开销要少一些，因为我们支持不仅4种buckets，且允许CPU和RAM容量独立缩放）。
 
 ### 5.5 资源回收（Resource reclamation）
