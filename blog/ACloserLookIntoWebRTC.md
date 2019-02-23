@@ -39,3 +39,91 @@ ICE候选项在WebRTC连接的早期阶段进行信息交换，以识别两个�
 一些测试页面可能会对主机ICE候选项的可用性作出假设。要对此进行测试，请从**开发>WebRTC**菜单中启用"禁用ICE候选限制"，然后重新加载页面。
 
 ## 旧版WebRTC及媒体流API
+
+随着WebRTC标准化过程的推进，`RTCPeerConnection` API以各种方式逐步改进。API从最初基于回调，到变为完全基于promise，从最初专注于将`MediaStream`，移动到专注于`MediaStreamTrack`。感谢[WebRTC in WebKit](http://www.webrtcinwebkit.org/blog/2016/11/9/openwebrtc-in-webkit-upstream-complete)团队的努力，`RTCPeerConnection` API的改进与这两个主要变化保持一致。
+
+我们已经在Safari技术预览版34上默认关闭了旧版WebRTC API，并计划在没有这些API的情况下在macOS High Sierra和iOS 11上发布Safari 11。保留遗留API限制了我们在WebRTC上更快推进的能力。任何希望为Safari提供支持的网站都可能需要进行其他调整，因此这是摆脱这些遗留API的好时机。现有网站仍然可以依赖这些遗留API，您可以通过在**开发>WebRTC**菜单中启用"启用旧版WebRTC API"来达到目的。
+
+更准确地说，以下API仅在打开旧版API开关时可用，并提供了有关如何更新的建议：
+
+```cs
+partial interface Navigator {
+    // Switch to navigator.mediaDevices.getUserMedia
+    void getUserMedia(MediaStreamConstraints constraints, NavigatorUserMediaSuccessCallback successCallback, NavigatorUserMediaErrorCallback errorCallback);
+};
+
+partial interface RTCPeerConnection {
+    // Switch to getSenders, and look at RTCRtpSender.track
+    sequence<MediaStream> getLocalStreams();
+    // Switch to getReceivers, and look at RTCRtpReceiver.track
+    sequence<MediaStream> getRemoteStreams();
+
+    // Switch to getSenders/getReceivers
+    MediaStream getStreamById(DOMString streamId);
+    // Switch to addTrack
+    void addStream(MediaStream stream);
+    // Switch to removeTrack
+    void removeStream(MediaStream stream);
+
+    // Listen to ontrack event
+    attribute EventHandler onaddstream;
+
+    // Update to promise-only version of createOffer
+    Promise<void> createOffer(RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback, optional RTCOfferOptions options);
+    // Update to promise-only version of setLocalDescription
+    Promise<void> setLocalDescription(RTCSessionDescriptionInit description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+    // Update to promise-only version of createAnswer
+    Promise<void> createAnswer(RTCSessionDescriptionCallback successCallback, RTCPeerConnectionErrorCallback failureCallback);
+    // Update to promise-only version of setRemoteDescription
+    Promise<void> setRemoteDescription(RTCSessionDescriptionInit description, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+    // Update to promise-only version of addIceCandidate
+    Promise<void> addIceCandidate((RTCIceCandidateInit or RTCIceCandidate) candidate, VoidFunction successCallback, RTCPeerConnectionErrorCallback failureCallback);
+};
+```
+
+许多站点通过开源的adapter.js项目支持polyfill API。更新到最新版本是弥补API差异的一种方法，但我们建议切换到规范中列出的API。
+
+以下是如何使用最新API的几个示例。典型的仅接收/在线研讨的WebRTC调用可以像这样完成：
+
+```js
+var pc = new RTCPeerConnection();
+pc.addTransceiver('audio');
+pc.addTransceiver('video');
+var offer = await pc.createOffer();
+await pc.setLocalDescription(offer);
+// send offer to the other party
+...
+```
+
+典型的音频-视频WebRTC调用也可以像以下方式完成：
+
+```js
+var stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+var pc = new RTCPeerConnection();
+var audioSender = pc.addTrack(stream.getAudioTracks()[0], stream);
+var videoSender = pc.addTrack(stream.getVideoTracks()[0], stream);
+var offer = await pc.createOffer();
+await pc.setLocalDescription(offer);
+// send offer to the other party
+...
+```
+
+基于`MediaStreamTrack`的API很有意义，因为大多数处理都是在这一层完成的。假设捕获视频轨的640×480默认分辨率不够好，继续前面的示例，动态更改它可以按如下方式完成：
+
+```js
+videoSender.track.applyConstraints({width: 1280, height: 720});
+```
+
+或者我们可能想要视频静音但保持音频流动：
+
+```js
+videoSender.track.enabled = false;
+```
+
+等等，我们实际上想要对当前的视频轨应用一些很酷的滤镜效果，就像在这个[例子](https://webkit.org/blog-files/webrtc/pc-with-effects/index.html)中一样，所需要的只是一些不需要任何SDP重新协商的函数调用：
+
+```js
+videoSender.track.enabled = true;
+renderWithEffects(video, canvas);
+videoSender.replaceTrack(canvas.captureStream().getVideoTracks()[0]);
+```
